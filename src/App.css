@@ -192,3 +192,45 @@
     min-width: 280px;
   }
 } 
+
+.board-title {
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 400;
+  margin-bottom: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.board-title:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.board-title::after {
+  content: '✎';
+  font-size: 18px;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.board-title:hover::after {
+  opacity: 0.5;
+}
+
+.board-title-input {
+  font-size: 24px;
+  font-weight: 400;
+  margin-bottom: 24px;
+  padding: 4px 8px;
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  outline: none;
+  width: auto;
+  min-width: 200px;
+  font-family: inherit;
+  background: white;
+  color: var(--text-primary);
+} 
