@@ -7,22 +7,37 @@ const initialColumns = {
     id: 'todo',
     title: 'To Do',
     tasks: []
-  },
-  inProgress: {
-    id: 'inProgress',
-    title: 'In Progress',
-    tasks: []
-  },
-  done: {
-    id: 'done',
-    title: 'Done',
-    tasks: []
   }
 };
 
 function App() {
   const [columns, setColumns] = useState(initialColumns);
   const [newTask, setNewTask] = useState('');
+  const [newColumnTitle, setNewColumnTitle] = useState('');
+
+  const handleAddColumn = (e) => {
+    e.preventDefault();
+    if (!newColumnTitle.trim()) return;
+
+    const columnId = newColumnTitle.toLowerCase().replace(/\s+/g, '-');
+    
+    setColumns({
+      ...columns,
+      [columnId]: {
+        id: columnId,
+        title: newColumnTitle,
+        tasks: []
+      }
+    });
+    
+    setNewColumnTitle('');
+  };
+
+  const handleDeleteColumn = (columnId) => {
+    const newColumns = { ...columns };
+    delete newColumns[columnId];
+    setColumns(newColumns);
+  };
 
   const handleAddTask = (e) => {
     e.preventDefault();
@@ -74,21 +89,41 @@ function App() {
     <div className="app">
       <h1>Kanban Board</h1>
       
-      <form onSubmit={handleAddTask} className="task-form">
-        <input
-          type="text"
-          value={newTask}
-          onChange={(e) => setNewTask(e.target.value)}
-          placeholder="Add a new task"
-        />
-        <button type="submit">Add Task</button>
-      </form>
+      <div className="forms-container">
+        <form onSubmit={handleAddTask} className="task-form">
+          <input
+            type="text"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="Add a new task"
+          />
+          <button type="submit">Add Task</button>
+        </form>
+
+        <form onSubmit={handleAddColumn} className="column-form">
+          <input
+            type="text"
+            value={newColumnTitle}
+            onChange={(e) => setNewColumnTitle(e.target.value)}
+            placeholder="Add a new column"
+          />
+          <button type="submit">Add Column</button>
+        </form>
+      </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="board">
           {Object.values(columns).map(column => (
             <div key={column.id} className="column">
-              <h2>{column.title}</h2>
+              <div className="column-header">
+                <h2>{column.title}</h2>
+                <button 
+                  className="delete-column"
+                  onClick={() => handleDeleteColumn(column.id)}
+                >
+                  ×
+                </button>
+              </div>
               <Droppable droppableId={column.id}>
                 {(provided) => (
                   <div
