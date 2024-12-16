@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import EmojiPicker from 'emoji-picker-react';
 import './App.css';
 
 const initialColumns = {
@@ -7,7 +8,9 @@ const initialColumns = {
     id: 'todo',
     title: 'To Do',
     tasks: [],
-    order: 0
+    order: 0,
+    emoji: '📝',
+    color: '#1a73e8'
   }
 };
 
@@ -18,6 +21,9 @@ function App() {
   const [boardTitle, setBoardTitle] = useState('Kanban Board');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const titleInputRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(null);
+  const [showColorPicker, setShowColorPicker] = useState(null);
+  const emojiPickerRef = useRef(null);
 
   useEffect(() => {
     if (isEditingTitle && titleInputRef.current) {
@@ -25,6 +31,18 @@ function App() {
       titleInputRef.current.select();
     }
   }, [isEditingTitle]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(null);
+        setShowColorPicker(null);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleTitleClick = () => {
     setIsEditingTitle(true);
@@ -60,7 +78,9 @@ function App() {
         id: columnId,
         title: newColumnTitle,
         tasks: [],
-        order: maxOrder + 1
+        order: maxOrder + 1,
+        emoji: '📝',
+        color: '#1a73e8'
       }
     });
     
@@ -153,6 +173,28 @@ function App() {
     });
   };
 
+  const handleEmojiClick = (columnId, emojiObject) => {
+    setColumns({
+      ...columns,
+      [columnId]: {
+        ...columns[columnId],
+        emoji: emojiObject.emoji
+      }
+    });
+    setShowEmojiPicker(null);
+  };
+
+  const handleColorChange = (columnId, color) => {
+    setColumns({
+      ...columns,
+      [columnId]: {
+        ...columns[columnId],
+        color: color
+      }
+    });
+    setShowColorPicker(null);
+  };
+
   const orderedColumns = Object.values(columns)
     .sort((a, b) => a.order - b.order);
 
@@ -218,20 +260,63 @@ function App() {
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       className="column"
+                      style={{
+                        ...provided.draggableProps.style,
+                        borderTop: `3px solid ${column.color}`
+                      }}
                     >
                       <div 
                         className="column-header"
                         {...provided.dragHandleProps}
                       >
-                        <h2>{column.title}</h2>
-                        <button 
-                          className="delete-column"
-                          onClick={() => handleDeleteColumn(column.id)}
-                        >
-                          ×
-                        </button>
+                        <div className="column-header-left">
+                          <span 
+                            className="column-emoji"
+                            onClick={() => setShowEmojiPicker(column.id)}
+                          >
+                            {column.emoji}
+                          </span>
+                          <h2>{column.title}</h2>
+                        </div>
+                        <div className="column-header-right">
+                          <button 
+                            className="color-picker-button"
+                            onClick={() => setShowColorPicker(column.id)}
+                            style={{ backgroundColor: column.color }}
+                          />
+                          <button 
+                            className="delete-column"
+                            onClick={() => handleDeleteColumn(column.id)}
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
-                      
+
+                      {showEmojiPicker === column.id && (
+                        <div className="emoji-picker-container" ref={emojiPickerRef}>
+                          <EmojiPicker
+                            onEmojiClick={(emojiObject) => handleEmojiClick(column.id, emojiObject)}
+                            width={300}
+                          />
+                        </div>
+                      )}
+
+                      {showColorPicker === column.id && (
+                        <div className="color-picker-container" ref={emojiPickerRef}>
+                          <div className="color-options">
+                            {['#1a73e8', '#dc3545', '#28a745', '#ffc107', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'].map(color => (
+                              <button
+                                key={color}
+                                className="color-option"
+                                style={{ backgroundColor: color }}
+                                onClick={() => handleColorChange(column.id, color)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <Droppable droppableId={column.id} type="task">
                         {(provided, snapshot) => (
                           <div

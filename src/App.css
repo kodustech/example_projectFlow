@@ -234,3 +234,77 @@
   background: white;
   color: var(--text-primary);
 } 
+
+.column-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.column-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.column-emoji {
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.column-emoji:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.emoji-picker-container {
+  position: absolute;
+  z-index: 1000;
+  margin-top: 8px;
+}
+
+.color-picker-container {
+  position: absolute;
+  z-index: 1000;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  margin-top: 8px;
+  right: 16px;
+}
+
+.color-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.color-option {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+}
+
+.color-picker-button {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid white;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.color-picker-button:hover {
+  transform: scale(1.1);
+} 
