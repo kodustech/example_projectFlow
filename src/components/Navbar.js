@@ -45,7 +45,7 @@ export function Navbar() {
     if (!user || !newTask.trim()) return;
 
     const task = {
-      id: Date.now().toString(),
+id: crypto.randomUUID(),
       content: newTask,
       createdAt: new Date()
     };
