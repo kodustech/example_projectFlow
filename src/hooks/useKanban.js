@@ -124,11 +124,105 @@ export function useKanban() {
       const column = columns[columnId];
       if (!column) return;
 
-      const updatedTasks = [...(column.tasks || []), taskData];
+      const taskWithVotes = {
+        ...taskData,
+        votes: 0,
+        votedBy: [],
+        createdBy: user.uid,
+        createdAt: new Date()
+      };
+
+      const updatedTasks = [...(column.tasks || []), taskWithVotes];
       await updateColumn(columnId, { tasks: updatedTasks });
     } catch (error) {
       console.error('Erro ao adicionar task:', error);
     }
+  };
+
+  // Vota em uma task
+  const voteTask = async (columnId, taskId) => {
+    try {
+      const column = columns[columnId];
+      if (!column) return;
+
+      const taskIndex = column.tasks.findIndex(t => t.id === taskId);
+      if (taskIndex === -1) return;
+
+      const task = column.tasks[taskIndex];
+      const voterId = user ? user.uid : getVisitorId();
+      
+      // Garante que a task tenha as propriedades necessárias
+      if (!task.votedBy) {
+        task.votedBy = [];
+      }
+      if (typeof task.votes !== 'number') {
+        task.votes = 0;
+      }
+      
+      // Verifica se o usuário já votou
+      if (task.votedBy.includes(voterId)) {
+        if (user) {
+          // Usuários logados podem remover seu voto
+          const updatedTask = {
+            ...task,
+            votes: Math.max(0, task.votes - 1), // Garante que não fique negativo
+            votedBy: task.votedBy.filter(id => id !== voterId)
+          };
+          const updatedTasks = [...column.tasks];
+          updatedTasks[taskIndex] = updatedTask;
+          await updateColumn(columnId, { tasks: updatedTasks });
+        }
+        return;
+      }
+
+      // Adiciona o voto
+      const updatedTask = {
+        ...task,
+        votes: (task.votes || 0) + 1,
+        votedBy: [...(task.votedBy || []), voterId]
+      };
+
+      const updatedTasks = [...column.tasks];
+      updatedTasks[taskIndex] = updatedTask;
+      await updateColumn(columnId, { tasks: updatedTasks });
+
+      // Salva o voto no localStorage para usuários não logados
+      if (!user) {
+        const votedTasks = JSON.parse(localStorage.getItem('votedTasks') || '[]');
+        votedTasks.push(taskId);
+        localStorage.setItem('votedTasks', JSON.stringify(votedTasks));
+      }
+    } catch (error) {
+      console.error('Erro ao votar na task:', error);
+    }
+  };
+
+  // Verifica se um usuário já votou em uma task
+  const hasVoted = (taskId) => {
+    try {
+      const voterId = user ? user.uid : getVisitorId();
+      const column = Object.values(columns).find(col => 
+        col.tasks?.some(task => task.id === taskId)
+      );
+      
+      if (!column) return false;
+      
+      const task = column.tasks.find(t => t.id === taskId);
+      return task?.votedBy?.includes(voterId) || false;
+    } catch (error) {
+      console.error('Erro ao verificar voto:', error);
+      return false;
+    }
+  };
+
+  // Gera um ID único para visitantes não logados
+  const getVisitorId = () => {
+    let visitorId = localStorage.getItem('visitorId');
+    if (!visitorId) {
+      visitorId = 'visitor_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('visitorId', visitorId);
+    }
+    return visitorId;
   };
 
   // Move uma task entre colunas
@@ -172,6 +266,8 @@ export function useKanban() {
     updateColumnsOrder,
     addTask,
     moveTask,
-    updateBoardTitle
+    updateBoardTitle,
+    voteTask,
+    hasVoted
   };
 } 

@@ -31,20 +31,24 @@
 }
 
 /* Navbar Styles */
+.navbar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: var(--navbar-bg);
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.3s ease;
+}
+
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 24px;
-  background-color: var(--navbar-bg);
-  border-bottom: 1px solid var(--border-color);
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  z-index: 1000;
-  transition: background-color 0.3s ease;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 .navbar-left {
@@ -53,10 +57,60 @@
   gap: 16px;
 }
 
+.navbar-center {
+  display: flex;
+  align-items: center;
+}
+
 .navbar-right {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.add-button {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.add-button:hover {
+  background: var(--hover-bg);
+  color: var(--primary-color);
+}
+
+.add-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.navbar-forms {
+  padding: 16px 24px;
+  background: var(--navbar-bg);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 16px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .navbar-forms {
+    flex-direction: column;
+    padding: 12px;
+  }
+  
+  .navbar {
+    padding: 12px;
+  }
 }
 
 .board-title {
@@ -124,6 +178,9 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
 }
 
 /* Auth Buttons */
@@ -168,6 +225,13 @@
   min-height: 100vh;
   padding-top: 73px; /* navbar height + padding */
   transition: background-color 0.3s ease;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Update padding-top when forms are shown */
+.app.forms-visible {
+  padding-top: 140px; /* adjusted for forms height */
 }
 
 /* Forms */
@@ -287,6 +351,10 @@
   color: var(--text-primary);
   font-size: 14px;
   transition: all 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
 .task:hover {
@@ -297,6 +365,54 @@
 
 .task:active {
   cursor: grabbing;
+}
+
+.task-content {
+  flex: 1;
+}
+
+.task-vote {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.vote-button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.vote-button:hover {
+  background: var(--hover-bg);
+  color: var(--primary-color);
+}
+
+.vote-button.voted {
+  color: var(--primary-color);
+}
+
+.vote-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 24px;
+  text-align: center;
+}
+
+.vote-button svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* Loading State */

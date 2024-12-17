@@ -15,14 +15,14 @@ function KanbanBoard() {
     updateColumn, 
     deleteColumn, 
     updateColumnsOrder,
-    addTask, 
-    moveTask 
+    moveTask,
+    voteTask,
+    hasVoted
   } = useKanban();
   
-  const [newTask, setNewTask] = useState('');
-  const [newColumnTitle, setNewColumnTitle] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(null);
+  const [showForms, setShowForms] = useState(false);
   const emojiPickerRef = useRef(null);
 
   useEffect(() => {
@@ -36,49 +36,6 @@ function KanbanBoard() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleAddColumn = async (e) => {
-    e.preventDefault();
-    if (!user || !newColumnTitle.trim()) return;
-
-    const columnId = newColumnTitle.toLowerCase().replace(/\s+/g, '-');
-    const maxOrder = Math.max(...Object.values(columns).map(col => col.order), -1);
-    
-    await updateColumn(columnId, {
-      id: columnId,
-      title: newColumnTitle,
-      tasks: [],
-      order: maxOrder + 1,
-      emoji: '📝',
-      color: '#1a73e8'
-    });
-    
-    setNewColumnTitle('');
-  };
-
-  const handleAddTask = async (e) => {
-    e.preventDefault();
-    if (!user || !newTask.trim()) return;
-
-    const task = {
-      id: Date.now().toString(),
-      content: newTask,
-      createdAt: new Date()
-    };
-
-    const firstColumnId = Object.values(columns)
-      .sort((a, b) => a.order - b.order)[0]?.id;
-
-    if (firstColumnId) {
-      await addTask(firstColumnId, task);
-      setNewTask('');
-    }
-  };
-
-  const handleDeleteColumn = async (columnId) => {
-    if (!user) return;
-    await deleteColumn(columnId);
-  };
 
   const onDragEnd = async (result) => {
     if (!user) return;
@@ -145,33 +102,9 @@ function KanbanBoard() {
   }
 
   return (
-    <div className="app">
-      <Navbar />
+    <div className={`app ${showForms ? 'forms-visible' : ''}`}>
+      <Navbar onFormsVisibilityChange={setShowForms} />
       
-      {user && (
-        <div className="forms-container">
-          <form onSubmit={handleAddTask} className="task-form">
-            <input
-              type="text"
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              placeholder="Add a new task"
-            />
-            <button type="submit">Add Task</button>
-          </form>
-
-          <form onSubmit={handleAddColumn} className="column-form">
-            <input
-              type="text"
-              value={newColumnTitle}
-              onChange={(e) => setNewColumnTitle(e.target.value)}
-              placeholder="Add a new column"
-            />
-            <button type="submit">Add Column</button>
-          </form>
-        </div>
-      )}
-
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="board" type="column" direction="horizontal">
           {(provided) => (
@@ -220,7 +153,7 @@ function KanbanBoard() {
                             />
                             <button 
                               className="delete-column"
-                              onClick={() => handleDeleteColumn(column.id)}
+                              onClick={() => deleteColumn(column.id)}
                             >
                               ×
                             </button>
@@ -277,7 +210,19 @@ function KanbanBoard() {
                                       cursor: user ? 'grab' : 'default'
                                     }}
                                   >
-                                    {task.content}
+                                    <div className="task-content">{task.content}</div>
+                                    <div className="task-vote">
+                                      <button
+                                        className={`vote-button ${hasVoted(task.id) ? 'voted' : ''}`}
+                                        onClick={() => voteTask(column.id, task.id)}
+                                        title={hasVoted(task.id) ? 'Remover voto' : 'Votar'}
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                        </svg>
+                                      </button>
+                                      <span className="vote-count">{task.votes || 0}</span>
+                                    </div>
                                   </div>
                                 )}
                               </Draggable>
