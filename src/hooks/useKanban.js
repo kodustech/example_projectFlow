@@ -219,7 +219,7 @@ export function useKanban() {
   const getVisitorId = () => {
     let visitorId = localStorage.getItem('visitorId');
     if (!visitorId) {
-      visitorId = 'visitor_' + Math.random().toString(36).substr(2, 9);
+visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       localStorage.setItem('visitorId', visitorId);
     }
     return visitorId;
