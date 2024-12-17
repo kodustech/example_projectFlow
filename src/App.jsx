@@ -4,6 +4,7 @@ import EmojiPicker from 'emoji-picker-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Navbar } from './components/Navbar';
+import { TaskDetail } from './components/TaskDetail';
 import { useKanban } from './hooks/useKanban';
 import './App.css';
 
@@ -17,12 +18,14 @@ function KanbanBoard() {
     updateColumnsOrder,
     moveTask,
     voteTask,
-    hasVoted
+    hasVoted,
+    updateTask
   } = useKanban();
   
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(null);
   const [showForms, setShowForms] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
   const emojiPickerRef = useRef(null);
 
   useEffect(() => {
@@ -94,6 +97,15 @@ function KanbanBoard() {
     setShowColorPicker(null);
   };
 
+  const handleTaskClick = (columnId, task) => {
+    setSelectedTask({ ...task, columnId });
+  };
+
+  const handleTaskUpdate = async (taskId, updates) => {
+    if (!selectedTask?.columnId) return;
+    await updateTask(selectedTask.columnId, taskId, updates);
+  };
+
   const orderedColumns = Object.values(columns)
     .sort((a, b) => a.order - b.order);
 
@@ -104,6 +116,13 @@ function KanbanBoard() {
   return (
     <div className={`app ${showForms ? 'forms-visible' : ''}`}>
       <Navbar onFormsVisibilityChange={setShowForms} />
+      
+      <TaskDetail
+        task={selectedTask}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onUpdate={handleTaskUpdate}
+      />
       
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="board" type="column" direction="horizontal">
@@ -209,12 +228,16 @@ function KanbanBoard() {
                                       ...provided.draggableProps.style,
                                       cursor: user ? 'grab' : 'default'
                                     }}
+                                    onClick={() => handleTaskClick(column.id, task)}
                                   >
                                     <div className="task-content">{task.content}</div>
                                     <div className="task-vote">
                                       <button
                                         className={`vote-button ${hasVoted(task.id) ? 'voted' : ''}`}
-                                        onClick={() => voteTask(column.id, task.id)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          voteTask(column.id, task.id);
+                                        }}
                                         title={hasVoted(task.id) ? 'Remover voto' : 'Votar'}
                                       >
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">

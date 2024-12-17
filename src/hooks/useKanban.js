@@ -257,6 +257,33 @@ export function useKanban() {
     }
   };
 
+  // Atualiza uma task existente
+  const updateTask = async (columnId, taskId, updates) => {
+    if (!user) return;
+    
+    try {
+      const column = columns[columnId];
+      if (!column) return;
+
+      const taskIndex = column.tasks.findIndex(t => t.id === taskId);
+      if (taskIndex === -1) return;
+
+      const updatedTask = {
+        ...column.tasks[taskIndex],
+        ...updates,
+        updatedAt: new Date(),
+        updatedBy: user.uid
+      };
+
+      const updatedTasks = [...column.tasks];
+      updatedTasks[taskIndex] = updatedTask;
+
+      await updateColumn(columnId, { tasks: updatedTasks });
+    } catch (error) {
+      console.error('Erro ao atualizar task:', error);
+    }
+  };
+
   return {
     columns,
     boardTitle,
@@ -268,6 +295,7 @@ export function useKanban() {
     moveTask,
     updateBoardTitle,
     voteTask,
-    hasVoted
+    hasVoted,
+    updateTask
   };
 } 
