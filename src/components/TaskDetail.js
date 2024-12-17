@@ -16,15 +16,6 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate }) {
     }
   }, [task]);
 
-  useEffect(() => {
-    // Força o modo de cor no documento
-    document.documentElement.setAttribute('data-color-mode', isDark ? 'dark' : 'light');
-    
-    return () => {
-      document.documentElement.removeAttribute('data-color-mode');
-    };
-  }, [isDark]);
-
   if (!isOpen || !task) return null;
 
   const handleSave = () => {
@@ -55,23 +46,19 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate }) {
             </div>
 
             {user && isEditing ? (
-              <div className="description-editor">
+              <div className="description-editor" data-color-mode={isDark ? "dark" : "light"}>
                 <MDEditor
                   value={description}
                   onChange={setDescription}
-                  preview="edit"
+                  preview="live"
                   height={200}
-                  visibleDragbar={false}
-                  hideToolbar={true}
+                  hideToolbar={false}
+                  enableScroll={true}
+                  style={{
+                    backgroundColor: isDark ? '#27272A' : '#ffffff',
+                  }}
                   previewOptions={{
                     rehypePlugins: [[rehypeSanitize]],
-                  }}
-                  textareaProps={{
-                    placeholder: 'Write your description here...',
-                    style: {
-                      backgroundColor: isDark ? '#27272A' : '#f8f9fa',
-                      color: isDark ? '#FFFFFF' : '#202124'
-                    }
                   }}
                 />
                 <div className="editor-actions">
@@ -84,10 +71,14 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate }) {
                 </div>
               </div>
             ) : (
-              <div className="description-preview">
+              <div className="description-preview" data-color-mode={isDark ? "dark" : "light"}>
                 <MDEditor.Markdown 
                   source={description || 'No description provided.'} 
                   rehypePlugins={[[rehypeSanitize]]}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: 'inherit'
+                  }}
                 />
               </div>
             )}
