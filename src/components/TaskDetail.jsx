@@ -47,7 +47,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
   }, [isOpen]);
 
   useEffect(() => {
-    console.log('TaskDetail montado com task:', task);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('TaskDetail mounted with task:', task);
+    }  
   }, [task]);
 
   if (!isOpen || !task) return null;
