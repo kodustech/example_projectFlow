@@ -5,6 +5,8 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import rehypeSanitize from 'rehype-sanitize';
+import { formatDuration } from '../utils/timeUtils';
+import { TimeTracker } from './TimeTracker';
 
 const LABEL_COLORS = [
   '#1a73e8', '#dc3545', '#28a745', '#ffc107', 
@@ -12,9 +14,9 @@ const LABEL_COLORS = [
 ];
 
 const PRIORITY_LEVELS = {
-  HIGH: { label: 'High', color: '#dc3545' },
-  MEDIUM: { label: 'Medium', color: '#ffc107' },
-  LOW: { label: 'Low', color: '#28a745' }
+  HIGH: { label: 'High', color: '#dc3545', icon: '🔴' },
+  MEDIUM: { label: 'Medium', color: '#ffc107', icon: '🟡' },
+  LOW: { label: 'Low', color: '#28a745', icon: '🟢' }
 };
 
 export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLabel, onRemoveLabel }) {
@@ -33,11 +35,25 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     const date = new Date(task.dueDate);
     return isNaN(date.getTime()) ? null : date;
   });
+  const [isTracking, setIsTracking] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('development');
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Categories for time tracking
+  const categories = {
+    development: { label: 'Development', color: '#28a745' },
+    planning: { label: 'Planning', color: '#17a2b8' },
+    testing: { label: 'Testing', color: '#ffc107' },
+    bugfix: { label: 'Bug Fix', color: '#dc3545' },
+    meeting: { label: 'Meeting', color: '#6f42c1' },
+    other: { label: 'Other', color: '#6c757d' }
+  };
 
   useEffect(() => {
     if (task) {
       setDescription(task.description || '');
       setPriority(task.priority || 'MEDIUM');
+      setIsTracking(task.timeEntries?.some(entry => entry.ongoing) || false);
       const date = task.dueDate ? new Date(task.dueDate) : null;
       setDueDate(isNaN(date?.getTime()) ? null : date);
       setShowDeleteConfirm(false);
@@ -59,6 +75,27 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
       console.log('TaskDetail mounted with task:', task);
     }  
   }, [task]);
+
+  useEffect(() => {
+    let interval;
+    if (isTracking && task && isOpen) {
+      const currentEntry = task.timeEntries?.find(entry => entry.ongoing);
+      if (currentEntry) {
+        interval = setInterval(() => {
+          setElapsedTime(Date.now() - currentEntry.startTime);
+        }, 1000);
+      }
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+      if (!isOpen) {
+        setElapsedTime(0);
+      }
+    };
+  }, [isTracking, task, isOpen]);
 
   if (!isOpen || !task) return null;
 
@@ -82,16 +119,14 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
 
   const handleAddLabel = () => {
     if (newLabelText.trim()) {
-      console.log('Tentando adicionar label:', {
-        taskId: task.id,
+      const newLabel = {
+        id: crypto.randomUUID?.() || String(Date.now() + Math.random()),
         text: newLabelText.trim(),
         color: selectedColor
-      });
+      };
       
-      onAddLabel(task.id, {
-        text: newLabelText.trim(),
-        color: selectedColor
-      });
+      const updatedLabels = [...(task.labels || []), newLabel];
+      onUpdate(task.id, { labels: updatedLabels });
       setNewLabelText('');
       setShowLabelForm(false);
     }
@@ -101,6 +136,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     if (showDeleteConfirm) {
       setShowDeleteConfirm(false);
     } else {
+      if (isTracking) {
+        handleStopTracking();
+      }
       onClose();
     }
   };
@@ -110,6 +148,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
       if (showDeleteConfirm) {
         setShowDeleteConfirm(false);
       } else {
+        if (isTracking) {
+          handleStopTracking();
+        }
         onClose();
       }
     }
@@ -145,6 +186,92 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     onUpdate(task.id, { comments: updatedComments });
   };
 
+  const getActivityFeed = () => {
+    const activities = [];
+
+    // Add time entries
+    (task.timeEntries || []).forEach(entry => {
+      activities.push({
+        type: 'time',
+        timestamp: entry.startTime,
+        data: entry
+      });
+    });
+
+    // Add comments
+    (task.comments || []).forEach(comment => {
+      activities.push({
+        type: 'comment',
+        timestamp: new Date(comment.createdAt).getTime(),
+        data: comment
+      });
+    });
+
+    // Sort by timestamp, newest first
+    return activities.sort((a, b) => b.timestamp - a.timestamp);
+  };
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      return date.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  };
+
+  const handleStartTracking = () => {
+    setIsTracking(true);
+    onUpdate(task.id, {
+      timeEntries: [...(task.timeEntries || []), {
+        category: selectedCategory,
+        startTime: Date.now(),
+        ongoing: true
+      }]
+    });
+  };
+
+  const handleStopTracking = () => {
+    setIsTracking(false);
+    const entries = task.timeEntries || [];
+    const currentEntry = entries[entries.length - 1];
+    
+    if (currentEntry && currentEntry.ongoing) {
+      const updatedEntries = entries.slice(0, -1);
+      updatedEntries.push({
+        ...currentEntry,
+        endTime: Date.now(),
+        duration: Date.now() - currentEntry.startTime,
+        ongoing: false
+      });
+      
+      onUpdate(task.id, { timeEntries: updatedEntries });
+    }
+  };
+
+  const handleDeleteTimeEntry = (index) => {
+    const entries = task.timeEntries || [];
+    const updatedEntries = [...entries];
+    updatedEntries.splice(index, 1);
+    onUpdate(task.id, { timeEntries: updatedEntries });
+  };
+
+  const handlePriorityChange = (newPriority) => {
+    setPriority(newPriority);
+    onUpdate(task.id, { priority: newPriority });
+  };
+
   return (
     <div className={`task-detail-overlay ${isDark ? 'dark' : ''}`} onClick={handleOverlayClick}>
       <div className="task-detail-modal" onClick={e => e.stopPropagation()}>
@@ -162,23 +289,19 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
         <div className="task-detail-content">
           <div className="task-detail-main">
             {/* Priority Section */}
-            <div className="task-priority-selector">
-              <label>Priority</label>
-              <div className="priority-options">
-                {Object.entries(PRIORITY_LEVELS).map(([key, { label, color }]) => (
+            <div className="priority-section">
+              <div className="section-title">Priority</div>
+              <div className="priority-buttons">
+                {Object.entries(PRIORITY_LEVELS).map(([key, { label, color, icon }]) => (
                   <button
                     key={key}
-                    onClick={() => {
-                      setPriority(key);
-                      handleSave();
-                    }}
+                    onClick={() => handlePriorityChange(key)}
                     className={`priority-button ${priority === key ? 'selected' : ''}`}
                     style={{
-                      backgroundColor: priority === key ? color : 'transparent',
-                      color: priority === key ? 'white' : color,
-                      borderColor: color
+                      '--priority-color': color
                     }}
                   >
+                    <span className="priority-icon">{icon}</span>
                     {label}
                   </button>
                 ))}
@@ -238,12 +361,34 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
               )}
             </div>
 
-            {/* Comments Section */}
-            <div className="task-comments">
-              <div className="comments-header">
-                <h3>Comments</h3>
+            {/* Activity Section */}
+            <div className="activity-section">
+              <div className="section-header">
+                <h3>Activity</h3>
+                <div className="activity-controls">
+                  {user && (
+                    <>
+                      <select 
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="category-select"
+                      >
+                        {Object.entries(categories).map(([value, { label }]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                      
+                      <button
+                        className={`tracking-button ${isTracking ? 'tracking' : ''}`}
+                        onClick={isTracking ? handleStopTracking : handleStartTracking}
+                      >
+                        {isTracking ? 'Stop' : 'Start Tracking'}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              
+
               {user && (
                 <div className="comment-form">
                   <textarea
@@ -263,33 +408,65 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
                 </div>
               )}
 
-              <div className="comments-list">
-                {(task.comments || []).length > 0 ? (
-                  task.comments.map(comment => (
-                    <div key={comment.id} className="comment-item">
-                      <div className="comment-header">
-                        <span className="comment-author">{comment.createdByName}</span>
-                        <span className="comment-date">
-                          {new Date(comment.createdAt).toLocaleString()}
-                        </span>
-                        {user && user.uid === comment.createdBy && (
+              <div className="activity-feed">
+                {getActivityFeed().map((activity, index) => (
+                  <div key={index} className="activity-item">
+                    {activity.type === 'time' ? (
+                      <>
+                        <div 
+                          className="activity-marker"
+                          style={{ backgroundColor: categories[activity.data.category || 'other'].color }}
+                        />
+                        <div className="activity-content">
+                          <div className="activity-text">
+                            <strong>{categories[activity.data.category || 'other'].label}</strong>
+                            {' - '}
+                            {activity.data.ongoing ? (
+                              <span className="ongoing">Tracking now... {formatDuration(elapsedTime)}</span>
+                            ) : (
+                              <span>{formatDuration(activity.data.duration)}</span>
+                            )}
+                          </div>
+                          <div className="activity-time">
+                            {formatTime(activity.timestamp)}
+                          </div>
+                        </div>
+                        {!activity.data.ongoing && (
                           <button
-                            className="delete-comment-button"
-                            onClick={() => handleDeleteComment(comment.id)}
+                            className="delete-entry"
+                            onClick={() => handleDeleteTimeEntry(index)}
+                            title="Delete time entry"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="activity-marker comment-marker" />
+                        <div className="activity-content">
+                          <div className="activity-text">
+                            <strong>{activity.data.createdByName}</strong>
+                            {' commented: '}
+                            <span className="comment-text">{activity.data.text}</span>
+                          </div>
+                          <div className="activity-time">
+                            {formatTime(activity.timestamp)}
+                          </div>
+                        </div>
+                        {user && user.uid === activity.data.createdBy && (
+                          <button
+                            className="delete-entry"
+                            onClick={() => handleDeleteComment(activity.data.id)}
                             title="Delete comment"
                           >
                             ×
                           </button>
                         )}
-                      </div>
-                      <div className="comment-text">{comment.text}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-comments-message">
-                    No comments yet
+                      </>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
             </div>
           </div>
