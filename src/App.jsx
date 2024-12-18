@@ -10,6 +10,7 @@ import { TaskDetail } from './components/TaskDetail';
 import { useKanban } from './hooks/useKanban';
 import './App.css';
 import { FloatingTimer } from './components/FloatingTimer';
+import { Filters } from './components/Filters';
 
 // Time tracking categories
 const categories = {
@@ -48,6 +49,16 @@ function KanbanBoard() {
   const [newTaskContent, setNewTaskContent] = useState('');
   const [activeTimer, setActiveTimer] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [activeFilters, setActiveFilters] = useState({
+    priority: [],
+    labels: [],
+    dueDate: {
+      from: null,
+      to: null
+    },
+    overdue: false,
+    hasNoDate: false
+  });
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -303,6 +314,79 @@ function KanbanBoard() {
     }
   };
 
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+  };
+
+  const filterTasks = (tasks) => {
+    if (!tasks) return [];
+    
+    return tasks.filter(task => {
+      // Priority filter
+      if (activeFilters.priority.length > 0 && !activeFilters.priority.includes(task.priority)) {
+        return false;
+      }
+
+      // Labels filter
+      if (activeFilters.labels.length > 0) {
+        const taskLabelIds = task.labels?.map(l => l.id) || [];
+        if (!activeFilters.labels.some(labelId => taskLabelIds.includes(labelId))) {
+          return false;
+        }
+      }
+
+      // Due date filter
+      if (task.dueDate) {
+        const dueDate = new Date(task.dueDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Overdue filter
+        if (activeFilters.overdue) {
+          if (dueDate >= today) {
+            return false;
+          }
+        }
+
+        // Date range filter
+        if (activeFilters.dueDate.from) {
+          const fromDate = new Date(activeFilters.dueDate.from);
+          fromDate.setHours(0, 0, 0, 0);
+          if (dueDate < fromDate) {
+            return false;
+          }
+        }
+
+        if (activeFilters.dueDate.to) {
+          const toDate = new Date(activeFilters.dueDate.to);
+          toDate.setHours(23, 59, 59, 999);
+          if (dueDate > toDate) {
+            return false;
+          }
+        }
+      } else if (activeFilters.hasNoDate) {
+        return true;
+      } else if (activeFilters.overdue || activeFilters.dueDate.from || activeFilters.dueDate.to) {
+        return false;
+      }
+
+      return true;
+    });
+  };
+
+  // Get all unique labels from all tasks
+  const getAllLabels = () => {
+    const labelsSet = new Set();
+    Object.values(columns).forEach(column => {
+      column.tasks?.forEach(task => {
+        task.labels?.forEach(label => {
+          labelsSet.add(JSON.stringify(label));
+        });
+      });
+    });
+    return Array.from(labelsSet).map(label => JSON.parse(label));
+  };
+
   if (loading) {
     return <div className="loading">Carregando...</div>;
   }
@@ -311,6 +395,11 @@ function KanbanBoard() {
     <div className={`app ${showForms ? 'forms-visible' : ''}`}>
       <Navbar onFormsVisibilityChange={setShowForms} />
       
+      <Filters 
+        onFilterChange={handleFilterChange}
+        labels={getAllLabels()}
+      />
+
       <TaskDetail
         task={selectedTask}
         isOpen={!!selectedTask}
@@ -430,7 +519,7 @@ function KanbanBoard() {
                             ref={provided.innerRef}
                             {...provided.droppableProps}
                           >
-                            {column.tasks?.map((task, index) => (
+                            {filterTasks(column.tasks)?.map((task, index) => (
                               <Draggable
                                 key={task.id}
                                 draggableId={task.id}
