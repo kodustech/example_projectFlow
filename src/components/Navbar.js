@@ -22,14 +22,20 @@ export function Navbar() {
   };
 
   const handleTitleChange = (e) => {
-    setEditedTitle(e.target.value);
-  };
-
-  const handleTitleBlur = async () => {
-    setIsEditingTitle(false);
-    if (editedTitle.trim() && editedTitle !== boardTitle) {
+const handleTitleBlur = async () => {
+  setIsEditingTitle(false);
+  if (editedTitle.trim() && editedTitle !== boardTitle) {
+    try {
       await updateBoardTitle(editedTitle.trim());
-    } else {
+    } catch (error) {
+      setEditedTitle(boardTitle);
+      console.error('Failed to update board title:', error);
+      // Add user feedback mechanism here
+    }
+  } else {
+    setEditedTitle(boardTitle);
+  }
+};
       setEditedTitle(boardTitle);
     }
   };
