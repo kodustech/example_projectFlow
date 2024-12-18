@@ -25,7 +25,8 @@ function KanbanBoard() {
     deleteTask,
     addTask,
     addLabel,
-    removeLabel
+    removeLabel,
+    updateActivityType
   } = useKanban();
   
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);

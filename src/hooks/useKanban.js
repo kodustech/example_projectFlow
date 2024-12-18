@@ -384,6 +384,24 @@ visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2,
     }
   };
 
+  // Adicionar nova função para atualizar o tipo de atividade
+  const updateActivityType = (columnId, cardId, activityType) => {
+    setColumns(prev => {
+      const newColumns = { ...prev };
+      const column = newColumns[columnId];
+      const cardIndex = column.items.findIndex(item => item.id === cardId);
+      
+      if (cardIndex !== -1) {
+        column.items[cardIndex] = {
+          ...column.items[cardIndex],
+          activityType
+        };
+      }
+      
+      return newColumns;
+    });
+  };
+
   return {
     columns,
     boardTitle,
@@ -399,6 +417,7 @@ visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2,
     updateTask,
     deleteTask,
     addLabel,
-    removeLabel
+    removeLabel,
+    updateActivityType
   };
 } 

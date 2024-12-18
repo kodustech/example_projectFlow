@@ -1207,3 +1207,18 @@
     padding-top: 24px;
   }
 } 
+
+.activity-type-select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+}
+
+.activity-type-select:focus {
+  outline: none;
+  border-color: #007bff;
+} 
