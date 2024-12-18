@@ -19,7 +19,8 @@ function KanbanBoard() {
     moveTask,
     voteTask,
     hasVoted,
-    updateTask
+    updateTask,
+    deleteTask
   } = useKanban();
   
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
@@ -106,6 +107,11 @@ function KanbanBoard() {
     await updateTask(selectedTask.columnId, taskId, updates);
   };
 
+  const handleTaskDelete = async (taskId) => {
+    if (!selectedTask?.columnId) return;
+    await deleteTask(selectedTask.columnId, taskId);
+  };
+
   const orderedColumns = Object.values(columns)
     .sort((a, b) => a.order - b.order);
 
@@ -122,6 +128,7 @@ function KanbanBoard() {
         isOpen={!!selectedTask}
         onClose={() => setSelectedTask(null)}
         onUpdate={handleTaskUpdate}
+        onDelete={handleTaskDelete}
       />
       
       <DragDropContext onDragEnd={onDragEnd}>

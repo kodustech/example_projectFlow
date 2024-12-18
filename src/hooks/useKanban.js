@@ -284,6 +284,21 @@ visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2,
     }
   };
 
+  // Remove uma task
+  const deleteTask = async (columnId, taskId) => {
+    if (!user) return;
+    
+    try {
+      const column = columns[columnId];
+      if (!column) return;
+
+      const updatedTasks = column.tasks.filter(task => task.id !== taskId);
+      await updateColumn(columnId, { tasks: updatedTasks });
+    } catch (error) {
+      console.error('Erro ao deletar task:', error);
+    }
+  };
+
   return {
     columns,
     boardTitle,
@@ -296,6 +311,7 @@ visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2,
     updateBoardTitle,
     voteTask,
     hasVoted,
-    updateTask
+    updateTask,
+    deleteTask
   };
 } 

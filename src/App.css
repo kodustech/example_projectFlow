@@ -678,3 +678,33 @@
 [data-color-mode="light"] .w-md-editor-text-input {
   -webkit-text-fill-color: var(--text-primary) !important;
 } 
+
+/* Task Detail Header Actions */
+.task-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-task-button {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.delete-task-button:hover {
+  background: var(--priority-high);
+  color: white;
+  border-color: var(--priority-high);
+}
+
+.delete-task-button.confirm {
+  background: var(--priority-high);
+  color: white;
+  border-color: var(--priority-high);
+} 

@@ -4,11 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import rehypeSanitize from 'rehype-sanitize';
 
-export function TaskDetail({ task, isOpen, onClose, onUpdate }) {
+export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete }) {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const [description, setDescription] = useState(task?.description || '');
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -23,12 +24,32 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate }) {
     setIsEditing(false);
   };
 
+  const handleDelete = () => {
+    if (showDeleteConfirm) {
+      onDelete(task.id);
+      onClose();
+    } else {
+      setShowDeleteConfirm(true);
+    }
+  };
+
   return (
     <div className="task-detail-overlay" onClick={onClose}>
       <div className="task-detail" onClick={e => e.stopPropagation()}>
         <div className="task-detail-header">
           <h2>{task.content}</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <div className="task-detail-actions">
+            {user && (
+              <button 
+                className={`delete-task-button ${showDeleteConfirm ? 'confirm' : ''}`}
+                onClick={handleDelete}
+                title={showDeleteConfirm ? "Click again to confirm deletion" : "Delete task"}
+              >
+                {showDeleteConfirm ? 'Click to confirm' : 'Delete'}
+              </button>
+            )}
+            <button className="close-button" onClick={onClose}>×</button>
+          </div>
         </div>
         
         <div className="task-detail-content">
