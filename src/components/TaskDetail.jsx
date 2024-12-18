@@ -279,20 +279,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
           <div className="task-metadata">
             <div className="metadata-item">
               <span className="metadata-label">Created:</span>
-const formatCreatedAt = (timestamp) => {
-  if (!timestamp) return 'Unknown';
-  try {
-    const date = timestamp.seconds
-      ? new Date(timestamp.seconds * 1000)
-      : new Date(timestamp);
-    return date.toLocaleString();
-  } catch (error) {
-    return 'Invalid date';
-  }
-};
-
-// Usage:
-<span>{formatCreatedAt(task.createdAt)}</span>
+              <span>{new Date(task.createdAt?.seconds * 1000 || task.createdAt).toLocaleString()}</span>
             </div>
             {task.createdBy && (
               <div className="metadata-item">
