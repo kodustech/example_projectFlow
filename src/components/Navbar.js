@@ -23,6 +23,7 @@ export function Navbar() {
 
   const handleTitleChange = (e) => {
 const handleTitleBlur = async () => {
+  setIsLoading(true);
   setIsEditingTitle(false);
   if (editedTitle.trim() && editedTitle !== boardTitle) {
     try {
