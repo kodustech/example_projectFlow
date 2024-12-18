@@ -23,7 +23,8 @@ export function Navbar() {
 
   const handleTitleChange = (e) => {
 const handleTitleBlur = async () => {
-  setIsLoading(true);
+const debouncedSetLoading = debounce((value) => setIsLoading(value), 300);
+debouncedSetLoading(true);
   setIsEditingTitle(false);
   if (editedTitle.trim() && editedTitle !== boardTitle) {
     try {
