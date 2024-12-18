@@ -157,7 +157,7 @@ function KanbanBoard() {
     dueDate.setDate(dueDate.getDate() + 7); // Default to 1 week from now
     
     await addTask(columnId, {
-      id: crypto.randomUUID(),
+      id: crypto.randomUUID?.() || String(Date.now() + Math.random()),
       content: newTaskContent.trim(),
       createdAt: dueDate.toISOString(),
       dueDate: dueDate.toISOString(),
