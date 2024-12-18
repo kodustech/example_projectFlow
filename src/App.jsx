@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import EmojiPicker from 'emoji-picker-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -29,6 +29,16 @@ function KanbanBoard() {
   const [showForms, setShowForms] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const emojiPickerRef = useRef(null);
+
+  const handleTaskClick = (columnId, task) => {
+    setSelectedTask({ ...task, columnId });
+  };
+
+  const handleTaskClickMemoized = useCallback((columnId, task, isDragging) => {
+    if (!isDragging) {
+      handleTaskClick(columnId, task);
+    }
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -102,10 +112,6 @@ function KanbanBoard() {
       color: color
     });
     setShowColorPicker(null);
-  };
-
-  const handleTaskClick = (columnId, task) => {
-    setSelectedTask({ ...task, columnId });
   };
 
   const handleTaskUpdate = async (taskId, updates) => {
@@ -240,11 +246,7 @@ function KanbanBoard() {
                                     style={{
                                       ...provided.draggableProps.style,
                                     }}
-onClick={useCallback((e) => {
-  if (!snapshot.isDragging) {
-    handleTaskClick(column.id, task);
-  }
-}, [column.id, task, handleTaskClick, snapshot.isDragging])}
+                                    onClick={(e) => handleTaskClickMemoized(column.id, task, snapshot.isDragging)}
                                   >
                                     {user && (
                                       <div
