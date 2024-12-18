@@ -20,7 +20,8 @@ function KanbanBoard() {
     voteTask,
     hasVoted,
     updateTask,
-    deleteTask
+    deleteTask,
+    addTask
   } = useKanban();
   
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
@@ -47,6 +48,11 @@ function KanbanBoard() {
     const { source, destination, type } = result;
     
     if (!destination) return;
+
+    if (!columns[source.droppableId] || !columns[destination.droppableId]) {
+      console.error('Colunas não encontradas');
+      return;
+    }
 
     if (type === 'column') {
       const orderedColumns = Object.values(columns)
@@ -229,16 +235,41 @@ function KanbanBoard() {
                                   <div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
-                                    {...(user ? provided.dragHandleProps : {})}
+                                    {...provided.dragHandleProps}
                                     className={`task ${snapshot.isDragging ? 'dragging' : ''}`}
                                     style={{
                                       ...provided.draggableProps.style,
-                                      cursor: user ? 'grab' : 'default'
                                     }}
-                                    onClick={() => handleTaskClick(column.id, task)}
+                                    onClick={(e) => {
+                                      if (!snapshot.isDragging) {
+                                        handleTaskClick(column.id, task);
+                                      }
+                                    }}
                                   >
-                                    <div className="task-content">{task.content}</div>
-                                    <div className="task-vote">
+                                    {user && (
+                                      <div
+                                        className="task-drag-handle"
+                                        title="Arrastar task"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                        }}
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9h8M8 15h8" />
+                                        </svg>
+                                      </div>
+                                    )}
+                                    <div 
+                                      className="task-content"
+                                    >
+                                      {task.content}
+                                    </div>
+                                    <div 
+                                      className="task-vote"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                      }}
+                                    >
                                       <button
                                         className={`vote-button ${hasVoted(task.id) ? 'voted' : ''}`}
                                         onClick={(e) => {
@@ -258,6 +289,28 @@ function KanbanBoard() {
                               </Draggable>
                             ))}
                             {provided.placeholder}
+                            {user && (
+                              <div className="add-task-button-container">
+                                <button
+                                  className="add-task-button"
+                                  onClick={() => {
+                                    const taskContent = prompt('Enter task content:');
+                                    if (taskContent?.trim()) {
+                                      addTask(column.id, {
+                                        id: crypto.randomUUID(),
+                                        content: taskContent,
+                                        createdAt: new Date(),
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                  </svg>
+                                  Add a card
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </Droppable>

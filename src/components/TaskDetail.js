@@ -14,8 +14,15 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete }) {
   useEffect(() => {
     if (task) {
       setDescription(task.description || '');
+      setShowDeleteConfirm(false);
     }
   }, [task]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setShowDeleteConfirm(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen || !task) return null;
 
@@ -33,8 +40,26 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete }) {
     }
   };
 
+  const handleCloseClick = () => {
+    if (showDeleteConfirm) {
+      setShowDeleteConfirm(false);
+    } else {
+      onClose();
+    }
+  };
+
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      if (showDeleteConfirm) {
+        setShowDeleteConfirm(false);
+      } else {
+        onClose();
+      }
+    }
+  };
+
   return (
-    <div className="task-detail-overlay" onClick={onClose}>
+    <div className="task-detail-overlay" onClick={handleOverlayClick}>
       <div className="task-detail" onClick={e => e.stopPropagation()}>
         <div className="task-detail-header">
           <h2>{task.content}</h2>
@@ -43,12 +68,17 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete }) {
               <button 
                 className={`delete-task-button ${showDeleteConfirm ? 'confirm' : ''}`}
                 onClick={handleDelete}
-                title={showDeleteConfirm ? "Click again to confirm deletion" : "Delete task"}
               >
-                {showDeleteConfirm ? 'Click to confirm' : 'Delete'}
+                {showDeleteConfirm ? 'Click to confirm deletion' : 'Delete'}
               </button>
             )}
-            <button className="close-button" onClick={onClose}>×</button>
+            <button 
+              className="close-button" 
+              onClick={handleCloseClick}
+              title={showDeleteConfirm ? "Cancel deletion" : "Close"}
+            >
+              {showDeleteConfirm ? 'Cancel' : '×'}
+            </button>
           </div>
         </div>
         
@@ -56,7 +86,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete }) {
           <div className="task-description">
             <div className="description-header">
               <h3>Description</h3>
-              {user && (
+              {user && !showDeleteConfirm && (
                 <button 
                   className="edit-button"
                   onClick={() => setIsEditing(!isEditing)}
@@ -66,7 +96,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete }) {
               )}
             </div>
 
-            {user && isEditing ? (
+            {user && isEditing && !showDeleteConfirm ? (
               <div className="description-editor" data-color-mode={isDark ? "dark" : "light"}>
                 <MDEditor
                   value={description}
