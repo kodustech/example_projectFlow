@@ -110,7 +110,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     if (!newComment.trim() || !user) return;
     
     const comment = {
-      id: crypto.randomUUID(),
+      id: crypto.randomUUID?.() || String(Date.now() + Math.random()),
       text: newComment.trim(),
       createdAt: new Date().toISOString(),
       createdBy: user.uid,
