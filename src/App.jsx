@@ -240,11 +240,11 @@ function KanbanBoard() {
                                     style={{
                                       ...provided.draggableProps.style,
                                     }}
-                                    onClick={(e) => {
-                                      if (!snapshot.isDragging) {
-                                        handleTaskClick(column.id, task);
-                                      }
-                                    }}
+onClick={useCallback((e) => {
+  if (!snapshot.isDragging) {
+    handleTaskClick(column.id, task);
+  }
+}, [column.id, task, handleTaskClick, snapshot.isDragging])}
                                   >
                                     {user && (
                                       <div
