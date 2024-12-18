@@ -134,6 +134,7 @@ export function useKanban() {
         ...taskData,
         votes: 0,
         votedBy: [],
+        labels: [],
         createdBy: user.uid,
         createdAt: new Date()
       };
@@ -318,6 +319,71 @@ visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2,
     }
   };
 
+  // Adiciona uma label a uma task
+  const addLabel = async (columnId, taskId, label) => {
+    if (!user) return;
+    
+    try {
+      console.log('Adicionando label:', { columnId, taskId, label });
+      const column = columns[columnId];
+      if (!column) {
+        console.error('Coluna não encontrada:', columnId);
+        return;
+      }
+
+      const taskIndex = column.tasks.findIndex(t => t.id === taskId);
+      if (taskIndex === -1) {
+        console.error('Task não encontrada:', taskId);
+        return;
+      }
+
+      const task = column.tasks[taskIndex];
+      console.log('Task atual:', task);
+      
+      const updatedTask = {
+        ...task,
+        labels: [...(task.labels || []), {
+          id: crypto.randomUUID(),
+          text: label.text,
+          color: label.color
+        }]
+      };
+      console.log('Task atualizada:', updatedTask);
+
+      const updatedTasks = [...column.tasks];
+      updatedTasks[taskIndex] = updatedTask;
+      await updateColumn(columnId, { tasks: updatedTasks });
+      console.log('Label adicionada com sucesso');
+    } catch (error) {
+      console.error('Erro ao adicionar label:', error);
+    }
+  };
+
+  // Remove uma label de uma task
+  const removeLabel = async (columnId, taskId, labelId) => {
+    if (!user) return;
+    
+    try {
+      const column = columns[columnId];
+      if (!column) return;
+
+      const taskIndex = column.tasks.findIndex(t => t.id === taskId);
+      if (taskIndex === -1) return;
+
+      const task = column.tasks[taskIndex];
+      const updatedTask = {
+        ...task,
+        labels: task.labels.filter(label => label.id !== labelId)
+      };
+
+      const updatedTasks = [...column.tasks];
+      updatedTasks[taskIndex] = updatedTask;
+      await updateColumn(columnId, { tasks: updatedTasks });
+    } catch (error) {
+      console.error('Erro ao remover label:', error);
+    }
+  };
+
   return {
     columns,
     boardTitle,
@@ -331,6 +397,8 @@ visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2,
     voteTask,
     hasVoted,
     updateTask,
-    deleteTask
+    deleteTask,
+    addLabel,
+    removeLabel
   };
 } 
