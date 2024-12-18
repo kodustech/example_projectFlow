@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import rehypeSanitize from 'rehype-sanitize';
 import { formatDuration } from '../utils/timeUtils';
+import { TimeTracker } from './TimeTracker';
 
 const LABEL_COLORS = [
   '#1a73e8', '#dc3545', '#28a745', '#ffc107', 
@@ -148,35 +149,6 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     onUpdate(task.id, { comments: updatedComments });
   };
 
-  const handleStartTracking = () => {
-    setIsTracking(true);
-    setTrackingStartTime(Date.now());
-    onUpdate(task.id, {
-      timeEntries: [...(task.timeEntries || []), {
-        startTime: Date.now(),
-        ongoing: true
-      }]
-    });
-  };
-
-  const handleStopTracking = () => {
-    setIsTracking(false);
-    const entries = task.timeEntries || [];
-    const currentEntry = entries[entries.length - 1];
-    
-    if (currentEntry && currentEntry.ongoing) {
-      const updatedEntries = entries.slice(0, -1);
-      updatedEntries.push({
-        startTime: currentEntry.startTime,
-        endTime: Date.now(),
-        duration: Date.now() - currentEntry.startTime,
-        ongoing: false
-      });
-      
-      onUpdate(task.id, { timeEntries: updatedEntries });
-    }
-  };
-
   return (
     <div className={`task-detail-overlay ${isDark ? 'dark' : ''}`} onClick={handleOverlayClick}>
       <div className="task-detail-modal" onClick={e => e.stopPropagation()}>
@@ -272,48 +244,44 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
 
             {/* Time Tracking Section */}
             <div className="time-tracking-section">
-              <div className="section-header">
-                <h3>Time Tracking</h3>
-                {user && !showDeleteConfirm && (
-                  <button
-                    className={`tracking-button ${isTracking ? 'tracking' : ''}`}
-                    onClick={isTracking ? handleStopTracking : handleStartTracking}
-                  >
-                    {isTracking ? 'Stop Tracking' : 'Start Tracking'}
-                  </button>
-                )}
-              </div>
-              
-              <div className="time-entries">
-                {task.timeEntries?.length > 0 ? (
-                  <div className="entries-list">
-                    {task.timeEntries.map((entry, index) => (
-                      <div key={index} className="time-entry">
-                        <span className="entry-date">
-                          {new Date(entry.startTime).toLocaleDateString()}
-                        </span>
-                        <span className="entry-duration">
-                          {entry.ongoing 
-                            ? 'Ongoing...'
-                            : formatDuration(entry.duration)
-                          }
-                        </span>
-                      </div>
-                    ))}
-                    <div className="total-time">
-                      Total: {formatDuration(
-                        task.timeEntries.reduce((total, entry) => 
-                          total + (entry.duration || 0), 0
-                        )
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="no-entries-message">
-                    No time entries yet
-                  </div>
-                )}
-              </div>
+              <TimeTracker
+                timeEntries={task.timeEntries || []}
+                isTracking={isTracking}
+                onStartTracking={(entry) => {
+                  setIsTracking(true);
+                  setTrackingStartTime(entry.startTime);
+                  onUpdate(task.id, {
+                    timeEntries: [...(task.timeEntries || []), entry]
+                  });
+                }}
+                onStopTracking={() => {
+                  setIsTracking(false);
+                  const entries = task.timeEntries || [];
+                  const currentEntry = entries[entries.length - 1];
+                  
+                  if (currentEntry && currentEntry.ongoing) {
+                    const updatedEntries = entries.slice(0, -1);
+                    updatedEntries.push({
+                      ...currentEntry,
+                      endTime: Date.now(),
+                      duration: Date.now() - currentEntry.startTime,
+                      ongoing: false
+                    });
+                    
+                    onUpdate(task.id, { timeEntries: updatedEntries });
+                  }
+                }}
+                onUpdateEntry={(index, updatedEntry) => {
+                  const updatedEntries = [...(task.timeEntries || [])];
+                  updatedEntries[index] = updatedEntry;
+                  onUpdate(task.id, { timeEntries: updatedEntries });
+                }}
+                onDeleteEntry={(index) => {
+                  const updatedEntries = [...(task.timeEntries || [])];
+                  updatedEntries.splice(index, 1);
+                  onUpdate(task.id, { timeEntries: updatedEntries });
+                }}
+              />
             </div>
 
             {/* Comments Section */}

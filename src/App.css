@@ -1373,4 +1373,165 @@
     opacity: 1;
   }
 }
+
+/* Time Tracker Styles */
+.time-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.time-tracker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.elapsed-time {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--text-primary);
+  font-family: monospace;
+  animation: pulse 2s infinite;
+}
+
+.tracking-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.category-select {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.time-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.category-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-item {
+  padding: 6px 12px;
+  border-radius: 16px;
+  color: white;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.category-label {
+  font-weight: 500;
+}
+
+.category-duration {
+  font-family: monospace;
+}
+
+.time-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.time-entry {
+  background-color: var(--bg-primary);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.entry-category {
+  padding: 4px 8px;
+  border-radius: 12px;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.entry-date {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.entry-times {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.time-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-input-group label {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.time-input-group input {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.entry-duration {
+  font-family: monospace;
+  color: var(--text-primary);
+  font-size: 14px;
+  margin-left: auto;
+}
+
+.delete-entry-button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.delete-entry-button:hover {
+  color: var(--text-primary);
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
   
