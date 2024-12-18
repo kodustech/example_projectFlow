@@ -33,6 +33,8 @@ function KanbanBoard() {
   const [showForms, setShowForms] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const emojiPickerRef = useRef(null);
+  const [addingTaskToColumn, setAddingTaskToColumn] = useState(null);
+  const [newTaskContent, setNewTaskContent] = useState('');
 
   const handleTaskClick = (columnId, task) => {
     setSelectedTask({ ...task, columnId });
@@ -137,11 +139,33 @@ function KanbanBoard() {
   const handleTaskUpdate = async (taskId, updates) => {
     if (!selectedTask?.columnId) return;
     await updateTask(selectedTask.columnId, taskId, updates);
+    setSelectedTask(prev => ({
+      ...prev,
+      ...updates
+    }));
   };
 
   const handleTaskDelete = async (taskId) => {
     if (!selectedTask?.columnId) return;
     await deleteTask(selectedTask.columnId, taskId);
+  };
+
+  const handleAddTask = async (columnId) => {
+    if (!newTaskContent?.trim()) return;
+    
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 7); // Default to 1 week from now
+    
+    await addTask(columnId, {
+      id: crypto.randomUUID(),
+      content: newTaskContent.trim(),
+      createdAt: dueDate.toISOString(),
+      dueDate: dueDate.toISOString(),
+      labels: []
+    });
+    
+    setNewTaskContent('');
+    setAddingTaskToColumn(null);
   };
 
   const orderedColumns = Object.values(columns)
@@ -354,28 +378,52 @@ function KanbanBoard() {
                             {provided.placeholder}
                             {user && (
                               <div className="add-task-button-container">
-                                <button
-                                  className="add-task-button"
-                                  onClick={() => {
-                                    const taskContent = prompt('Enter task content:');
-                                    if (taskContent?.trim()) {
-                                      const dueDate = new Date();
-                                      dueDate.setDate(dueDate.getDate() + 7); // Default to 1 week from now
-                                      addTask(column.id, {
-                                        id: crypto.randomUUID(),
-                                        content: taskContent,
-                                        createdAt: dueDate.toISOString(),
-                                        dueDate: dueDate.toISOString(),
-                                        labels: []
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                  </svg>
-                                  Add a card
-                                </button>
+                                {addingTaskToColumn === column.id ? (
+                                  <div className="inline-task-form">
+                                    <textarea
+                                      value={newTaskContent}
+                                      onChange={(e) => setNewTaskContent(e.target.value)}
+                                      placeholder="Enter a title for this card..."
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                          e.preventDefault();
+                                          handleAddTask(column.id);
+                                        } else if (e.key === 'Escape') {
+                                          setAddingTaskToColumn(null);
+                                          setNewTaskContent('');
+                                        }
+                                      }}
+                                    />
+                                    <div className="inline-form-actions">
+                                      <button
+                                        className="inline-form-submit"
+                                        onClick={() => handleAddTask(column.id)}
+                                      >
+                                        Add card
+                                      </button>
+                                      <button
+                                        className="inline-form-cancel"
+                                        onClick={() => {
+                                          setAddingTaskToColumn(null);
+                                          setNewTaskContent('');
+                                        }}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="add-task-button"
+                                    onClick={() => setAddingTaskToColumn(column.id)}
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add a card
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
