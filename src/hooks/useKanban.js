@@ -121,8 +121,14 @@ export function useKanban() {
     if (!user) return;
     
     try {
+      console.log('Tentando adicionar task na coluna:', columnId);
+      console.log('Colunas disponíveis:', Object.keys(columns));
+      
       const column = columns[columnId];
-      if (!column) return;
+      if (!column) {
+        console.error('Coluna não encontrada:', columnId);
+        return;
+      }
 
       const taskWithVotes = {
         ...taskData,
@@ -132,8 +138,10 @@ export function useKanban() {
         createdAt: new Date()
       };
 
+      console.log('Adicionando task:', taskWithVotes);
       const updatedTasks = [...(column.tasks || []), taskWithVotes];
       await updateColumn(columnId, { tasks: updatedTasks });
+      console.log('Task adicionada com sucesso');
     } catch (error) {
       console.error('Erro ao adicionar task:', error);
     }
@@ -233,7 +241,18 @@ visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2,
       const sourceColumn = columns[sourceColumnId];
       const destinationColumn = columns[destinationColumnId];
       
-      if (!sourceColumn || !destinationColumn) return;
+      // Se alguma das colunas não existir, espera um pouco e tenta novamente
+      if (!sourceColumn || !destinationColumn) {
+        console.log('Aguardando colunas carregarem...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const retrySourceColumn = columns[sourceColumnId];
+        const retryDestinationColumn = columns[destinationColumnId];
+        
+        if (!retrySourceColumn || !retryDestinationColumn) {
+          console.error('Colunas não encontradas após retry');
+          return;
+        }
+      }
 
       const sourceTasks = [...(sourceColumn.tasks || [])];
       const [movedTask] = sourceTasks.splice(sourceIndex, 1);
