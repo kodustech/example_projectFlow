@@ -1,36 +1,33 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import EmojiPicker from 'emoji-picker-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { Navbar } from './components/Navbar';
+import { TaskDetail } from './components/TaskDetail';
+import { useKanban } from './hooks/useKanban';
 import './App.css';
 
-const initialColumns = {
-  todo: {
-    id: 'todo',
-    title: 'To Do',
-    tasks: [],
-    order: 0,
-    emoji: '📝',
-    color: '#1a73e8'
-  }
-};
-
-function App() {
-  const [columns, setColumns] = useState(initialColumns);
-  const [newTask, setNewTask] = useState('');
-  const [newColumnTitle, setNewColumnTitle] = useState('');
-  const [boardTitle, setBoardTitle] = useState('Kanban Board');
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const titleInputRef = useRef(null);
+function KanbanBoard() {
+  const { user } = useAuth();
+  const { 
+    columns, 
+    loading, 
+    updateColumn, 
+    deleteColumn, 
+    updateColumnsOrder,
+    moveTask,
+    voteTask,
+    hasVoted,
+    updateTask,
+    deleteTask
+  } = useKanban();
+  
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(null);
+  const [showForms, setShowForms] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
   const emojiPickerRef = useRef(null);
-
-  useEffect(() => {
-    if (isEditingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
-    }
-  }, [isEditingTitle]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -44,85 +41,13 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleTitleClick = () => {
-    setIsEditingTitle(true);
-  };
-
-  const handleTitleChange = (e) => {
-    setBoardTitle(e.target.value);
-  };
-
-  const handleTitleBlur = () => {
-    setIsEditingTitle(false);
-    if (!boardTitle.trim()) {
-      setBoardTitle('Kanban Board');
-    }
-  };
-
-  const handleTitleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleTitleBlur();
-    }
-  };
-
-  const handleAddColumn = (e) => {
-    e.preventDefault();
-    if (!newColumnTitle.trim()) return;
-
-    const columnId = newColumnTitle.toLowerCase().replace(/\s+/g, '-');
-    const maxOrder = Math.max(...Object.values(columns).map(col => col.order), -1);
+  const onDragEnd = async (result) => {
+    if (!user) return;
     
-    setColumns({
-      ...columns,
-      [columnId]: {
-        id: columnId,
-        title: newColumnTitle,
-        tasks: [],
-        order: maxOrder + 1,
-        emoji: '📝',
-        color: '#1a73e8'
-      }
-    });
-    
-    setNewColumnTitle('');
-  };
-
-  const handleAddTask = (e) => {
-    e.preventDefault();
-    if (!newTask.trim()) return;
-
-    const task = {
-      id: Date.now().toString(),
-      content: newTask
-    };
-
-    const firstColumnId = Object.values(columns)
-      .sort((a, b) => a.order - b.order)[0]?.id;
-
-    if (firstColumnId) {
-      setColumns({
-        ...columns,
-        [firstColumnId]: {
-          ...columns[firstColumnId],
-          tasks: [...columns[firstColumnId].tasks, task]
-        }
-      });
-    }
-    setNewTask('');
-  };
-
-  const handleDeleteColumn = (columnId) => {
-    const newColumns = { ...columns };
-    delete newColumns[columnId];
-    setColumns(newColumns);
-  };
-
-  const onDragEnd = (result) => {
     const { source, destination, type } = result;
     
     if (!destination) return;
 
-    // Se for arrasto de colunas
     if (type === 'column') {
       const orderedColumns = Object.values(columns)
         .sort((a, b) => a.order - b.order);
@@ -136,7 +61,6 @@ function App() {
       const [removed] = newOrder.splice(sourceIdx, 1);
       newOrder.splice(destinationIdx, 0, removed);
 
-      // Atualiza a ordem de todas as colunas
       const updatedColumns = newOrder.reduce((acc, col, idx) => ({
         ...acc,
         [col.id]: {
@@ -145,102 +69,68 @@ function App() {
         }
       }), {});
 
-      setColumns(updatedColumns);
+      await updateColumnsOrder(updatedColumns);
       return;
     }
 
-    // Se for arrasto de tarefas
-    const sourceColumn = columns[source.droppableId];
-    const destColumn = columns[destination.droppableId];
-    const sourceTasks = [...sourceColumn.tasks];
-    const destTasks = source.droppableId === destination.droppableId 
-      ? sourceTasks 
-      : [...destColumn.tasks];
-
-    const [removed] = sourceTasks.splice(source.index, 1);
-    destTasks.splice(destination.index, 0, removed);
-
-    setColumns({
-      ...columns,
-      [source.droppableId]: {
-        ...sourceColumn,
-        tasks: sourceTasks
-      },
-      [destination.droppableId]: {
-        ...destColumn,
-        tasks: destTasks
-      }
-    });
+    await moveTask(
+      source.droppableId,
+      destination.droppableId,
+      result.draggableId,
+      source.index,
+      destination.index
+    );
   };
 
-  const handleEmojiClick = (columnId, emojiObject) => {
-    setColumns({
-      ...columns,
-      [columnId]: {
-        ...columns[columnId],
-        emoji: emojiObject.emoji
-      }
+  const handleEmojiClick = async (columnId, emojiObject) => {
+    if (!user) return;
+    await updateColumn(columnId, {
+      emoji: emojiObject.emoji
     });
     setShowEmojiPicker(null);
   };
 
-  const handleColorChange = (columnId, color) => {
-    setColumns({
-      ...columns,
-      [columnId]: {
-        ...columns[columnId],
-        color: color
-      }
+  const handleColorChange = async (columnId, color) => {
+    if (!user) return;
+    await updateColumn(columnId, {
+      color: color
     });
     setShowColorPicker(null);
+  };
+
+  const handleTaskClick = (columnId, task) => {
+    setSelectedTask({ ...task, columnId });
+  };
+
+  const handleTaskUpdate = async (taskId, updates) => {
+    if (!selectedTask?.columnId) return;
+    await updateTask(selectedTask.columnId, taskId, updates);
+  };
+
+  const handleTaskDelete = async (taskId) => {
+    if (!selectedTask?.columnId) return;
+    await deleteTask(selectedTask.columnId, taskId);
   };
 
   const orderedColumns = Object.values(columns)
     .sort((a, b) => a.order - b.order);
 
+  if (loading) {
+    return <div className="loading">Carregando...</div>;
+  }
+
   return (
-    <div className="app">
-      {isEditingTitle ? (
-        <input
-          ref={titleInputRef}
-          type="text"
-          value={boardTitle}
-          onChange={handleTitleChange}
-          onBlur={handleTitleBlur}
-          onKeyDown={handleTitleKeyDown}
-          className="board-title-input"
-        />
-      ) : (
-        <h1 
-          onClick={handleTitleClick}
-          className="board-title"
-        >
-          {boardTitle}
-        </h1>
-      )}
+    <div className={`app ${showForms ? 'forms-visible' : ''}`}>
+      <Navbar onFormsVisibilityChange={setShowForms} />
       
-      <div className="forms-container">
-        <form onSubmit={handleAddTask} className="task-form">
-          <input
-            type="text"
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Add a new task"
-          />
-          <button type="submit">Add Task</button>
-        </form>
-
-        <form onSubmit={handleAddColumn} className="column-form">
-          <input
-            type="text"
-            value={newColumnTitle}
-            onChange={(e) => setNewColumnTitle(e.target.value)}
-            placeholder="Add a new column"
-          />
-          <button type="submit">Add Column</button>
-        </form>
-      </div>
-
+      <TaskDetail
+        task={selectedTask}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onUpdate={handleTaskUpdate}
+        onDelete={handleTaskDelete}
+      />
+      
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="board" type="column" direction="horizontal">
           {(provided) => (
@@ -254,6 +144,7 @@ function App() {
                   key={column.id} 
                   draggableId={column.id} 
                   index={index}
+                  isDragDisabled={!user}
                 >
                   {(provided) => (
                     <div
@@ -267,30 +158,33 @@ function App() {
                     >
                       <div 
                         className="column-header"
-                        {...provided.dragHandleProps}
+                        {...(user ? provided.dragHandleProps : {})}
                       >
                         <div className="column-header-left">
                           <span 
                             className="column-emoji"
-                            onClick={() => setShowEmojiPicker(column.id)}
+                            onClick={() => user && setShowEmojiPicker(column.id)}
+                            style={{ cursor: user ? 'pointer' : 'default' }}
                           >
                             {column.emoji}
                           </span>
                           <h2>{column.title}</h2>
                         </div>
-                        <div className="column-header-right">
-                          <button 
-                            className="color-picker-button"
-                            onClick={() => setShowColorPicker(column.id)}
-                            style={{ backgroundColor: column.color }}
-                          />
-                          <button 
-                            className="delete-column"
-                            onClick={() => handleDeleteColumn(column.id)}
-                          >
-                            ×
-                          </button>
-                        </div>
+                        {user && (
+                          <div className="column-header-right">
+                            <button 
+                              className="color-picker-button"
+                              onClick={() => setShowColorPicker(column.id)}
+                              style={{ backgroundColor: column.color }}
+                            />
+                            <button 
+                              className="delete-column"
+                              onClick={() => deleteColumn(column.id)}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {showEmojiPicker === column.id && (
@@ -324,20 +218,41 @@ function App() {
                             ref={provided.innerRef}
                             {...provided.droppableProps}
                           >
-                            {column.tasks.map((task, index) => (
+                            {column.tasks?.map((task, index) => (
                               <Draggable
                                 key={task.id}
                                 draggableId={task.id}
                                 index={index}
+                                isDragDisabled={!user}
                               >
                                 {(provided, snapshot) => (
                                   <div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
+                                    {...(user ? provided.dragHandleProps : {})}
                                     className={`task ${snapshot.isDragging ? 'dragging' : ''}`}
+                                    style={{
+                                      ...provided.draggableProps.style,
+                                      cursor: user ? 'grab' : 'default'
+                                    }}
+                                    onClick={() => handleTaskClick(column.id, task)}
                                   >
-                                    {task.content}
+                                    <div className="task-content">{task.content}</div>
+                                    <div className="task-vote">
+                                      <button
+                                        className={`vote-button ${hasVoted(task.id) ? 'voted' : ''}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          voteTask(column.id, task.id);
+                                        }}
+                                        title={hasVoted(task.id) ? 'Remover voto' : 'Votar'}
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                        </svg>
+                                      </button>
+                                      <span className="vote-count">{task.votes || 0}</span>
+                                    </div>
                                   </div>
                                 )}
                               </Draggable>
@@ -356,6 +271,16 @@ function App() {
         </Droppable>
       </DragDropContext>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <KanbanBoard />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
