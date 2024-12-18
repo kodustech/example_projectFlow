@@ -22,6 +22,13 @@ const categories = {
   other: { label: 'Other', color: '#6c757d' }
 };
 
+// Priority levels configuration
+const priorityLevels = {
+  HIGH: { label: 'High', color: '#dc3545', icon: '🔴' },
+  MEDIUM: { label: 'Medium', color: '#ffc107', icon: '🟡' },
+  LOW: { label: 'Low', color: '#28a745', icon: '🟢' }
+};
+
 function KanbanBoard() {
   const { user } = useAuth();
   const { 
@@ -111,8 +118,12 @@ function KanbanBoard() {
     
     if (!destination) return;
 
-    if (!columns[source.droppableId] || !columns[destination.droppableId]) {
-      console.error('Colunas não encontradas');
+    // Verificar se as colunas existem
+    const sourceColumn = columns[source.droppableId];
+    const destColumn = columns[destination.droppableId];
+
+    if (!sourceColumn || !destColumn) {
+      console.error('Colunas não encontradas:', { source: source.droppableId, destination: destination.droppableId });
       return;
     }
 
@@ -141,13 +152,45 @@ function KanbanBoard() {
       return;
     }
 
-    await moveTask(
-      source.droppableId,
-      destination.droppableId,
-      result.draggableId,
-      source.index,
-      destination.index
-    );
+    // Move task between columns
+    const taskToMove = sourceColumn.tasks?.[source.index];
+
+    if (!taskToMove) {
+      console.error('Task não encontrada:', { sourceIndex: source.index });
+      return;
+    }
+
+    const newSourceTasks = Array.from(sourceColumn.tasks || []);
+    newSourceTasks.splice(source.index, 1);
+
+    const newDestTasks = Array.from(destColumn.tasks || []);
+    newDestTasks.splice(destination.index, 0, taskToMove);
+
+    // Atualizar o estado local antes da chamada à API
+    const updatedColumns = {
+      ...columns,
+      [sourceColumn.id]: {
+        ...sourceColumn,
+        tasks: newSourceTasks
+      },
+      [destColumn.id]: {
+        ...destColumn,
+        tasks: newDestTasks
+      }
+    };
+
+    try {
+      await moveTask(
+        source.droppableId,
+        destination.droppableId,
+        taskToMove.id,
+        source.index,
+        destination.index
+      );
+    } catch (error) {
+      console.error('Erro ao mover task:', error);
+      // Em caso de erro, você pode querer reverter o estado local
+    }
   };
 
   const handleEmojiClick = async (columnId, emojiObject) => {
@@ -387,6 +430,13 @@ function KanbanBoard() {
     return Array.from(labelsSet).map(label => JSON.parse(label));
   };
 
+  const getPriorityStyle = (priority) => {
+    if (!priority) return {};
+    return {
+      borderLeft: `4px solid ${priorityLevels[priority]?.color || 'transparent'}`
+    };
+  };
+
   if (loading) {
     return <div className="loading">Carregando...</div>;
   }
@@ -403,24 +453,11 @@ function KanbanBoard() {
       <TaskDetail
         task={selectedTask}
         isOpen={!!selectedTask}
-        onClose={() => {
-          console.log('Fechando modal');
-          setSelectedTask(null);
-        }}
+        onClose={() => setSelectedTask(null)}
         onUpdate={handleTaskUpdate}
         onDelete={handleTaskDelete}
-        onAddLabel={(taskId, label) => {
-          console.log('Chamando addLabel com:', { taskId, label, columnId: selectedTask?.columnId });
-          if (selectedTask?.columnId) {
-            addLabel(selectedTask.columnId, taskId, label);
-          }
-        }}
-        onRemoveLabel={(taskId, labelId) => {
-          console.log('Chamando removeLabel com:', { taskId, labelId, columnId: selectedTask?.columnId });
-          if (selectedTask?.columnId) {
-            removeLabel(selectedTask.columnId, taskId, labelId);
-          }
-        }}
+        onAddLabel={addLabel}
+        onRemoveLabel={removeLabel}
       />
       
       <FloatingTimer
@@ -447,19 +484,19 @@ function KanbanBoard() {
                   index={index}
                   isDragDisabled={!user}
                 >
-                  {(provided) => (
+                  {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       className="column"
                       style={{
                         ...provided.draggableProps.style,
-                        borderTop: `3px solid ${column.color}`
+                        borderTop: `3px solid ${column.color || '#dee2e6'}`
                       }}
                     >
                       <div 
                         className="column-header"
-                        {...(user ? provided.dragHandleProps : {})}
+                        {...provided.dragHandleProps}
                       >
                         <div className="column-header-left">
                           <span 
@@ -515,11 +552,11 @@ function KanbanBoard() {
                       <Droppable droppableId={column.id} type="task">
                         {(provided, snapshot) => (
                           <div
-                            className={`task-list ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
                             ref={provided.innerRef}
                             {...provided.droppableProps}
+                            className={`task-list ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
                           >
-                            {filterTasks(column.tasks)?.map((task, index) => (
+                            {filterTasks(column.tasks || [])?.map((task, index) => (
                               <Draggable
                                 key={task.id}
                                 draggableId={task.id}
@@ -534,25 +571,11 @@ function KanbanBoard() {
                                     className={`task ${snapshot.isDragging ? 'dragging' : ''}`}
                                     style={{
                                       ...provided.draggableProps.style,
+                                      ...getPriorityStyle(task.priority)
                                     }}
                                     onClick={(e) => handleTaskClickMemoized(column.id, task, snapshot.isDragging)}
                                   >
-                                    {user && (
-                                      <div
-                                        className="task-drag-handle"
-                                        title="Arrastar task"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                        }}
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9h8M8 15h8" />
-                                        </svg>
-                                      </div>
-                                    )}
-                                    <div 
-                                      className="task-content"
-                                    >
+                                    <div className="task-content">
                                       <div className="task-text">{task.content}</div>
                                       {task.dueDate && (
                                         <div 
@@ -581,25 +604,19 @@ function KanbanBoard() {
                                         </div>
                                       )}
                                     </div>
-                                    <div 
-                                      className="task-vote"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                      }}
-                                    >
-                                      <button
-                                        className={`vote-button ${hasVoted(task.id) ? 'voted' : ''}`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          voteTask(column.id, task.id);
-                                        }}
-                                        title={hasVoted(task.id) ? 'Remover voto' : 'Votar'}
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                                        </svg>
-                                      </button>
-                                      <span className="vote-count">{task.votes || 0}</span>
+                                    <div className="task-footer">
+                                      <div className="task-votes">
+                                        <button
+                                          className={`vote-button ${hasVoted(task.id) ? 'voted' : ''}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            voteTask(column.id, task.id);
+                                          }}
+                                          title={hasVoted(task.id) ? 'Remover voto' : 'Votar'}
+                                        >
+                                          ⭐️ {task.votes || 0}
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
                                 )}
