@@ -36,7 +36,17 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     return isNaN(date.getTime()) ? null : date;
   });
   const [isTracking, setIsTracking] = useState(false);
-  const [trackingStartTime, setTrackingStartTime] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('development');
+
+  // Categories for time tracking
+  const categories = {
+    development: { label: 'Development', color: '#28a745' },
+    planning: { label: 'Planning', color: '#17a2b8' },
+    testing: { label: 'Testing', color: '#ffc107' },
+    bugfix: { label: 'Bug Fix', color: '#dc3545' },
+    meeting: { label: 'Meeting', color: '#6f42c1' },
+    other: { label: 'Other', color: '#6c757d' }
+  };
 
   useEffect(() => {
     if (task) {
@@ -149,6 +159,87 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     onUpdate(task.id, { comments: updatedComments });
   };
 
+  const getActivityFeed = () => {
+    const activities = [];
+
+    // Add time entries
+    (task.timeEntries || []).forEach(entry => {
+      activities.push({
+        type: 'time',
+        timestamp: entry.startTime,
+        data: entry
+      });
+    });
+
+    // Add comments
+    (task.comments || []).forEach(comment => {
+      activities.push({
+        type: 'comment',
+        timestamp: new Date(comment.createdAt).getTime(),
+        data: comment
+      });
+    });
+
+    // Sort by timestamp, newest first
+    return activities.sort((a, b) => b.timestamp - a.timestamp);
+  };
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      return date.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  };
+
+  const handleStartTracking = () => {
+    setIsTracking(true);
+    onUpdate(task.id, {
+      timeEntries: [...(task.timeEntries || []), {
+        category: selectedCategory,
+        startTime: Date.now(),
+        ongoing: true
+      }]
+    });
+  };
+
+  const handleStopTracking = () => {
+    setIsTracking(false);
+    const entries = task.timeEntries || [];
+    const currentEntry = entries[entries.length - 1];
+    
+    if (currentEntry && currentEntry.ongoing) {
+      const updatedEntries = entries.slice(0, -1);
+      updatedEntries.push({
+        ...currentEntry,
+        endTime: Date.now(),
+        duration: Date.now() - currentEntry.startTime,
+        ongoing: false
+      });
+      
+      onUpdate(task.id, { timeEntries: updatedEntries });
+    }
+  };
+
+  const handleDeleteTimeEntry = (index) => {
+    const entries = task.timeEntries || [];
+    const updatedEntries = [...entries];
+    updatedEntries.splice(index, 1);
+    onUpdate(task.id, { timeEntries: updatedEntries });
+  };
+
   return (
     <div className={`task-detail-overlay ${isDark ? 'dark' : ''}`} onClick={handleOverlayClick}>
       <div className="task-detail-modal" onClick={e => e.stopPropagation()}>
@@ -242,54 +333,34 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
               )}
             </div>
 
-            {/* Time Tracking Section */}
-            <div className="time-tracking-section">
-              <TimeTracker
-                timeEntries={task.timeEntries || []}
-                isTracking={isTracking}
-                onStartTracking={(entry) => {
-                  setIsTracking(true);
-                  setTrackingStartTime(entry.startTime);
-                  onUpdate(task.id, {
-                    timeEntries: [...(task.timeEntries || []), entry]
-                  });
-                }}
-                onStopTracking={() => {
-                  setIsTracking(false);
-                  const entries = task.timeEntries || [];
-                  const currentEntry = entries[entries.length - 1];
-                  
-                  if (currentEntry && currentEntry.ongoing) {
-                    const updatedEntries = entries.slice(0, -1);
-                    updatedEntries.push({
-                      ...currentEntry,
-                      endTime: Date.now(),
-                      duration: Date.now() - currentEntry.startTime,
-                      ongoing: false
-                    });
-                    
-                    onUpdate(task.id, { timeEntries: updatedEntries });
-                  }
-                }}
-                onUpdateEntry={(index, updatedEntry) => {
-                  const updatedEntries = [...(task.timeEntries || [])];
-                  updatedEntries[index] = updatedEntry;
-                  onUpdate(task.id, { timeEntries: updatedEntries });
-                }}
-                onDeleteEntry={(index) => {
-                  const updatedEntries = [...(task.timeEntries || [])];
-                  updatedEntries.splice(index, 1);
-                  onUpdate(task.id, { timeEntries: updatedEntries });
-                }}
-              />
-            </div>
-
-            {/* Comments Section */}
-            <div className="task-comments">
-              <div className="comments-header">
-                <h3>Comments</h3>
+            {/* Activity Section */}
+            <div className="activity-section">
+              <div className="section-header">
+                <h3>Activity</h3>
+                <div className="activity-controls">
+                  {user && (
+                    <>
+                      <select 
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="category-select"
+                      >
+                        {Object.entries(categories).map(([value, { label }]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                      
+                      <button
+                        className={`tracking-button ${isTracking ? 'tracking' : ''}`}
+                        onClick={isTracking ? handleStopTracking : handleStartTracking}
+                      >
+                        {isTracking ? 'Stop' : 'Start Tracking'}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              
+
               {user && (
                 <div className="comment-form">
                   <textarea
@@ -309,33 +380,65 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
                 </div>
               )}
 
-              <div className="comments-list">
-                {(task.comments || []).length > 0 ? (
-                  task.comments.map(comment => (
-                    <div key={comment.id} className="comment-item">
-                      <div className="comment-header">
-                        <span className="comment-author">{comment.createdByName}</span>
-                        <span className="comment-date">
-                          {new Date(comment.createdAt).toLocaleString()}
-                        </span>
-                        {user && user.uid === comment.createdBy && (
+              <div className="activity-feed">
+                {getActivityFeed().map((activity, index) => (
+                  <div key={index} className="activity-item">
+                    {activity.type === 'time' ? (
+                      <>
+                        <div 
+                          className="activity-marker"
+                          style={{ backgroundColor: categories[activity.data.category || 'other'].color }}
+                        />
+                        <div className="activity-content">
+                          <div className="activity-text">
+                            <strong>{categories[activity.data.category || 'other'].label}</strong>
+                            {' - '}
+                            {activity.data.ongoing ? (
+                              <span className="ongoing">Tracking now... {formatDuration(Date.now() - activity.data.startTime)}</span>
+                            ) : (
+                              <span>{formatDuration(activity.data.duration)}</span>
+                            )}
+                          </div>
+                          <div className="activity-time">
+                            {formatTime(activity.timestamp)}
+                          </div>
+                        </div>
+                        {!activity.data.ongoing && (
                           <button
-                            className="delete-comment-button"
-                            onClick={() => handleDeleteComment(comment.id)}
+                            className="delete-entry"
+                            onClick={() => handleDeleteTimeEntry(index)}
+                            title="Delete time entry"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="activity-marker comment-marker" />
+                        <div className="activity-content">
+                          <div className="activity-text">
+                            <strong>{activity.data.createdByName}</strong>
+                            {' commented: '}
+                            <span className="comment-text">{activity.data.text}</span>
+                          </div>
+                          <div className="activity-time">
+                            {formatTime(activity.timestamp)}
+                          </div>
+                        </div>
+                        {user && user.uid === activity.data.createdBy && (
+                          <button
+                            className="delete-entry"
+                            onClick={() => handleDeleteComment(activity.data.id)}
                             title="Delete comment"
                           >
                             ×
                           </button>
                         )}
-                      </div>
-                      <div className="comment-text">{comment.text}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-comments-message">
-                    No comments yet
+                      </>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
             </div>
           </div>

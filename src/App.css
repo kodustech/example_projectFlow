@@ -1376,162 +1376,259 @@
 
 /* Time Tracker Styles */
 .time-tracker {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px;
-  background-color: var(--bg-secondary);
+  padding: 12px;
+  background: var(--bg-primary);
   border-radius: 8px;
 }
 
-.time-tracker-header {
+.tracker-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tracker-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tracker-title h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .elapsed-time {
-  font-size: 24px;
-  font-weight: bold;
-  color: var(--text-primary);
   font-family: monospace;
+  font-size: 14px;
+  color: var(--text-secondary);
   animation: pulse 2s infinite;
 }
 
-.tracking-controls {
+.tracker-controls {
   display: flex;
-  gap: 12px;
-  align-items: center;
+  gap: 8px;
 }
 
 .category-select {
-  padding: 8px 12px;
-  border-radius: 4px;
+  padding: 6px 12px;
   border: 1px solid var(--border-color);
-  background-color: var(--bg-primary);
+  border-radius: 3px;
+  background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 14px;
 }
 
-.time-summary {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.category-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.category-item {
+.tracking-button {
   padding: 6px 12px;
-  border-radius: 16px;
+  border: none;
+  border-radius: 3px;
+  background: #28a745;
   color: white;
   font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.category-label {
-  font-weight: 500;
+.tracking-button:hover {
+  background: #218838;
 }
 
-.category-duration {
-  font-family: monospace;
+.tracking-button.tracking {
+  background: #dc3545;
 }
 
-.time-entries {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.tracking-button.tracking:hover {
+  background: #c82333;
 }
 
-.time-entry {
-  background-color: var(--bg-primary);
-  border-radius: 6px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* Activity Feed */
+.activity-section {
+  padding: 16px;
+  background: var(--bg-primary);
+  border-radius: 8px;
 }
 
-.entry-header {
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 16px;
 }
 
-.entry-category {
-  padding: 4px 8px;
-  border-radius: 12px;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
+.section-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.entry-date {
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
-.entry-times {
+.activity-controls {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.time-input-group {
-  display: flex;
-  align-items: center;
   gap: 8px;
 }
 
-.time-input-group label {
-  color: var(--text-secondary);
-  font-size: 14px;
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.time-input-group input {
-  padding: 4px 8px;
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px;
   border-radius: 4px;
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 14px;
+  position: relative;
 }
 
-.entry-duration {
-  font-family: monospace;
-  color: var(--text-primary);
-  font-size: 14px;
-  margin-left: auto;
+.activity-item:hover {
+  background: var(--hover-bg);
 }
 
-.delete-entry-button {
+.activity-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.comment-marker {
+  background-color: var(--primary-color);
+}
+
+.activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-text {
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.activity-text strong {
+  font-weight: 500;
+}
+
+.comment-text {
+  display: block;
+  margin-top: 4px;
+}
+
+.activity-time {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.ongoing {
+  color: #28a745;
+  animation: pulse 2s infinite;
+}
+
+.delete-entry {
+  opacity: 0;
   background: none;
   border: none;
   color: var(--text-secondary);
-  font-size: 18px;
+  font-size: 16px;
   cursor: pointer;
   padding: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s;
+  margin: -4px;
+  border-radius: 3px;
 }
 
-.delete-entry-button:hover {
+.activity-item:hover .delete-entry {
+  opacity: 1;
+}
+
+.delete-entry:hover {
+  background: var(--hover-bg);
   color: var(--text-primary);
 }
 
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.7; }
-  100% { opacity: 1; }
+/* Comment Form */
+.comment-form {
+  margin-bottom: 16px;
+}
+
+.comment-input {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  background: var(--hover-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.4;
+  resize: vertical;
+  min-height: 20px;
+  margin-bottom: 8px;
+}
+
+.comment-input:focus {
+  outline: none;
+  background: var(--bg-secondary);
+}
+
+.add-comment-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 3px;
+  background: var(--primary-color);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.add-comment-button:hover:not(:disabled) {
+  background: var(--hover-primary);
+}
+
+.add-comment-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Category Select and Tracking Button */
+.category-select {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.tracking-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 3px;
+  background: #28a745;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tracking-button:hover {
+  background: #218838;
+}
+
+.tracking-button.tracking {
+  background: #dc3545;
+}
+
+.tracking-button.tracking:hover {
+  background: #c82333;
 }
   

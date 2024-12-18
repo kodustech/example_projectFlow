@@ -44,41 +44,33 @@ export function TimeTracker({
     });
   };
 
-  const handleEditEntry = (entryIndex, updates) => {
-    const entry = timeEntries[entryIndex];
-    onUpdateEntry(entryIndex, {
-      ...entry,
-      ...updates,
-      duration: updates.endTime ? updates.endTime - entry.startTime : entry.duration
-    });
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return `Yesterday at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      return date.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
   };
 
-  const getTotalDuration = () => {
-    return timeEntries.reduce((total, entry) => {
-      if (entry.ongoing) {
-        return total + (Date.now() - entry.startTime);
-      }
-      return total + (entry.duration || 0);
-    }, 0);
-  };
-
-  const getDurationByCategory = () => {
-    const categoryDurations = {};
-    timeEntries.forEach(entry => {
-      const category = entry.category || 'other';
-      const duration = entry.ongoing ? 
-        (Date.now() - entry.startTime) : 
-        (entry.duration || 0);
-      
-      categoryDurations[category] = (categoryDurations[category] || 0) + duration;
-    });
-    return categoryDurations;
-  };
+  const sortedEntries = [...timeEntries].sort((a, b) => b.startTime - a.startTime);
 
   return (
     <div className="time-tracker">
-      <div className="time-tracker-header">
-        <div className="current-time">
+      <div className="tracker-header">
+        <div className="tracker-title">
+          <h3>Activity</h3>
           {isTracking && (
             <div className="elapsed-time">
               {formatDuration(elapsedTime)}
@@ -86,7 +78,7 @@ export function TimeTracker({
           )}
         </div>
         
-        <div className="tracking-controls">
+        <div className="tracker-controls">
           <select 
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
@@ -101,88 +93,38 @@ export function TimeTracker({
             className={`tracking-button ${isTracking ? 'tracking' : ''}`}
             onClick={isTracking ? onStopTracking : handleStartTracking}
           >
-            {isTracking ? 'Stop Tracking' : 'Start Tracking'}
+            {isTracking ? 'Stop' : 'Start Tracking'}
           </button>
         </div>
       </div>
 
-      <div className="time-summary">
-        <h4>Total Time: {formatDuration(getTotalDuration())}</h4>
-        <div className="category-summary">
-          {Object.entries(getDurationByCategory()).map(([category, duration]) => (
-            <div 
-              key={category} 
-              className="category-item"
-              style={{ 
-                backgroundColor: categories[category]?.color || categories.other.color,
-                opacity: 0.9
-              }}
-            >
-              <span className="category-label">{categories[category]?.label || 'Other'}</span>
-              <span className="category-duration">{formatDuration(duration)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="time-entries">
-        <h4>Time Entries</h4>
-        {timeEntries.map((entry, index) => (
-          <div key={index} className="time-entry">
-            <div className="entry-header">
-              <span 
-                className="entry-category"
-                style={{ 
-                  backgroundColor: categories[entry.category || 'other']?.color || categories.other.color 
-                }}
-              >
-                {categories[entry.category || 'other']?.label || 'Other'}
-              </span>
-              <span className="entry-date">
-                {new Date(entry.startTime).toLocaleDateString()}
-              </span>
-            </div>
-            
-            <div className="entry-times">
-              <div className="time-input-group">
-                <label>Start:</label>
-                <input
-                  type="datetime-local"
-                  value={new Date(entry.startTime).toISOString().slice(0, 16)}
-                  onChange={(e) => handleEditEntry(index, { 
-                    startTime: new Date(e.target.value).getTime() 
-                  })}
-                  disabled={entry.ongoing}
-                />
+      <div className="activity-log">
+        {sortedEntries.map((entry, index) => (
+          <div key={index} className="activity-item">
+            <div className="activity-marker" style={{ backgroundColor: categories[entry.category || 'other'].color }} />
+            <div className="activity-content">
+              <div className="activity-text">
+                <strong>{categories[entry.category || 'other'].label}</strong>
+                {' - '}
+                {entry.ongoing ? (
+                  <span className="ongoing">Tracking now...</span>
+                ) : (
+                  <span>{formatDuration(entry.duration)}</span>
+                )}
               </div>
-              
-              {!entry.ongoing && (
-                <div className="time-input-group">
-                  <label>End:</label>
-                  <input
-                    type="datetime-local"
-                    value={new Date(entry.endTime).toISOString().slice(0, 16)}
-                    onChange={(e) => handleEditEntry(index, { 
-                      endTime: new Date(e.target.value).getTime() 
-                    })}
-                  />
-                </div>
-              )}
-              
-              <span className="entry-duration">
-                {entry.ongoing ? 'Ongoing...' : formatDuration(entry.duration)}
-              </span>
-              
-              {!entry.ongoing && (
-                <button
-                  className="delete-entry-button"
-                  onClick={() => onDeleteEntry(index)}
-                  title="Delete entry"
-                >
-                  ×
-                </button>
-              )}
+              <div className="activity-time">
+                {formatTime(entry.startTime)}
+              </div>
             </div>
+            {!entry.ongoing && (
+              <button
+                className="delete-entry"
+                onClick={() => onDeleteEntry(index)}
+                title="Delete entry"
+              >
+                ×
+              </button>
+            )}
           </div>
         ))}
       </div>
