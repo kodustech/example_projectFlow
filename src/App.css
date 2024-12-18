@@ -696,23 +696,30 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: flex-start;
   z-index: 1100;
-  padding: 48px 0;
+  padding: 48px 24px;
   overflow-y: auto;
   backdrop-filter: blur(2px);
 }
 
-.task-detail {
+.task-detail-modal {
   background: var(--column-background);
   border-radius: 8px;
   width: 100%;
   max-width: 768px;
-  margin: 0 16px 48px;
+  margin: 0 auto;
   box-shadow: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 0 1px rgba(9, 30, 66, 0.08);
+  position: relative;
+}
+
+/* Dark theme adjustments */
+.dark .task-detail-modal {
+  background: var(--column-background);
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .task-detail-header {
@@ -1207,3 +1214,83 @@
     padding-top: 24px;
   }
 } 
+
+/* Priority Styles */
+.task-priority-selector {
+  margin-bottom: 1rem;
+  padding: 12px;
+  background: var(--hover-bg);
+  border-radius: 6px;
+}
+
+.task-priority-selector label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.priority-options {
+  display: flex;
+  gap: 8px;
+}
+
+.priority-button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 12px;
+  border: 2px solid transparent;
+  flex: 1;
+  text-align: center;
+}
+
+.priority-button:hover {
+  transform: translateY(-1px);
+}
+
+/* Priority Indicator on Task Card */
+.priority-indicator {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.priority-HIGH {
+  background-color: var(--priority-high);
+}
+
+.priority-MEDIUM {
+  background-color: var(--priority-medium);
+  color: #000;
+}
+
+.priority-LOW {
+  background-color: var(--priority-low);
+}
+
+/* Responsive Fixes */
+@media (max-width: 768px) {
+  .task-detail-modal {
+    margin: 0;
+    min-height: 100vh;
+    border-radius: 0;
+  }
+  
+  .task-detail-content {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 16px;
+  }
+} 
+  

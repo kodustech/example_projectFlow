@@ -11,10 +11,17 @@ const LABEL_COLORS = [
   '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'
 ];
 
+const PRIORITY_LEVELS = {
+  HIGH: { label: 'High', color: '#dc3545' },
+  MEDIUM: { label: 'Medium', color: '#ffc107' },
+  LOW: { label: 'Low', color: '#28a745' }
+};
+
 export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLabel, onRemoveLabel }) {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const [description, setDescription] = useState(task?.description || '');
+  const [priority, setPriority] = useState(task?.priority || 'MEDIUM');
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLabelForm, setShowLabelForm] = useState(false);
@@ -30,6 +37,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
   useEffect(() => {
     if (task) {
       setDescription(task.description || '');
+      setPriority(task.priority || 'MEDIUM');
       const date = task.dueDate ? new Date(task.dueDate) : null;
       setDueDate(isNaN(date?.getTime()) ? null : date);
       setShowDeleteConfirm(false);
@@ -55,7 +63,11 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
   if (!isOpen || !task) return null;
 
   const handleSave = () => {
-    onUpdate(task.id, { description });
+    onUpdate(task.id, {
+      description,
+      priority,
+      dueDate: dueDate?.toISOString(),
+    });
     setIsEditing(false);
   };
 
@@ -134,8 +146,8 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
   };
 
   return (
-    <div className="task-detail-overlay" onClick={handleOverlayClick}>
-      <div className="task-detail" onClick={e => e.stopPropagation()}>
+    <div className={`task-detail-overlay ${isDark ? 'dark' : ''}`} onClick={handleOverlayClick}>
+      <div className="task-detail-modal" onClick={e => e.stopPropagation()}>
         <div className="task-detail-header">
           <h2>{task.content}</h2>
           <button 
@@ -149,6 +161,30 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
         
         <div className="task-detail-content">
           <div className="task-detail-main">
+            {/* Priority Section */}
+            <div className="task-priority-selector">
+              <label>Priority</label>
+              <div className="priority-options">
+                {Object.entries(PRIORITY_LEVELS).map(([key, { label, color }]) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setPriority(key);
+                      handleSave();
+                    }}
+                    className={`priority-button ${priority === key ? 'selected' : ''}`}
+                    style={{
+                      backgroundColor: priority === key ? color : 'transparent',
+                      color: priority === key ? 'white' : color,
+                      borderColor: color
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Description Section */}
             <div className="task-description">
               <div className="description-header">

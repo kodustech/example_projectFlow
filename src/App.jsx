@@ -171,6 +171,61 @@ function KanbanBoard() {
   const orderedColumns = Object.values(columns)
     .sort((a, b) => a.order - b.order);
 
+  const renderTask = useCallback((task, columnId, provided, snapshot) => {
+    const taskDueDate = task.dueDate ? new Date(task.dueDate) : null;
+    const dueDateColor = getDueDateColor(taskDueDate);
+    
+    return (
+      <div
+        ref={provided.innerRef}
+        {...provided.draggableProps}
+        {...provided.dragHandleProps}
+        className={`task ${snapshot.isDragging ? 'dragging' : ''}`}
+        onClick={() => handleTaskClickMemoized(columnId, task, snapshot.isDragging)}
+      >
+        <div className="task-content">
+          {task.content}
+          {task.priority && (
+            <span className={`priority-indicator priority-${task.priority}`}>
+              {task.priority}
+            </span>
+          )}
+          {task.labels && task.labels.length > 0 && (
+            <div className="task-labels">
+              {task.labels.map((label, index) => (
+                <span
+                  key={index}
+                  className="task-label"
+                  style={{ backgroundColor: label.color }}
+                >
+                  {label.text}
+                </span>
+              ))}
+            </div>
+          )}
+          {taskDueDate && (
+            <div className="task-due-date" style={{ color: dueDateColor }}>
+              {formatDueDate(taskDueDate)}
+            </div>
+          )}
+        </div>
+        <div className="task-footer">
+          <div className="task-votes">
+            <button
+              className={`vote-button ${hasVoted(task.id) ? 'voted' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                voteTask(task.id);
+              }}
+            >
+              ⭐️ {task.votes?.length || 0}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }, [handleTaskClickMemoized, voteTask, hasVoted, getDueDateColor, formatDueDate]);
+
   if (loading) {
     return <div className="loading">Carregando...</div>;
   }
