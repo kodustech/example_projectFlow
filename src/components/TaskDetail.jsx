@@ -14,9 +14,9 @@ const LABEL_COLORS = [
 ];
 
 const PRIORITY_LEVELS = {
-  HIGH: { label: 'High', color: '#dc3545' },
-  MEDIUM: { label: 'Medium', color: '#ffc107' },
-  LOW: { label: 'Low', color: '#28a745' }
+  HIGH: { label: 'High', color: '#dc3545', icon: '🔴' },
+  MEDIUM: { label: 'Medium', color: '#ffc107', icon: '🟡' },
+  LOW: { label: 'Low', color: '#28a745', icon: '🟢' }
 };
 
 export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLabel, onRemoveLabel }) {
@@ -37,6 +37,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
   });
   const [isTracking, setIsTracking] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('development');
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   // Categories for time tracking
   const categories = {
@@ -52,6 +53,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     if (task) {
       setDescription(task.description || '');
       setPriority(task.priority || 'MEDIUM');
+      setIsTracking(task.timeEntries?.some(entry => entry.ongoing) || false);
       const date = task.dueDate ? new Date(task.dueDate) : null;
       setDueDate(isNaN(date?.getTime()) ? null : date);
       setShowDeleteConfirm(false);
@@ -73,6 +75,27 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
       console.log('TaskDetail mounted with task:', task);
     }  
   }, [task]);
+
+  useEffect(() => {
+    let interval;
+    if (isTracking && task && isOpen) {
+      const currentEntry = task.timeEntries?.find(entry => entry.ongoing);
+      if (currentEntry) {
+        interval = setInterval(() => {
+          setElapsedTime(Date.now() - currentEntry.startTime);
+        }, 1000);
+      }
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+      if (!isOpen) {
+        setElapsedTime(0);
+      }
+    };
+  }, [isTracking, task, isOpen]);
 
   if (!isOpen || !task) return null;
 
@@ -96,16 +119,14 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
 
   const handleAddLabel = () => {
     if (newLabelText.trim()) {
-      console.log('Tentando adicionar label:', {
-        taskId: task.id,
+      const newLabel = {
+        id: crypto.randomUUID?.() || String(Date.now() + Math.random()),
         text: newLabelText.trim(),
         color: selectedColor
-      });
+      };
       
-      onAddLabel(task.id, {
-        text: newLabelText.trim(),
-        color: selectedColor
-      });
+      const updatedLabels = [...(task.labels || []), newLabel];
+      onUpdate(task.id, { labels: updatedLabels });
       setNewLabelText('');
       setShowLabelForm(false);
     }
@@ -115,6 +136,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     if (showDeleteConfirm) {
       setShowDeleteConfirm(false);
     } else {
+      if (isTracking) {
+        handleStopTracking();
+      }
       onClose();
     }
   };
@@ -124,6 +148,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
       if (showDeleteConfirm) {
         setShowDeleteConfirm(false);
       } else {
+        if (isTracking) {
+          handleStopTracking();
+        }
         onClose();
       }
     }
@@ -240,6 +267,11 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     onUpdate(task.id, { timeEntries: updatedEntries });
   };
 
+  const handlePriorityChange = (newPriority) => {
+    setPriority(newPriority);
+    onUpdate(task.id, { priority: newPriority });
+  };
+
   return (
     <div className={`task-detail-overlay ${isDark ? 'dark' : ''}`} onClick={handleOverlayClick}>
       <div className="task-detail-modal" onClick={e => e.stopPropagation()}>
@@ -257,23 +289,19 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
         <div className="task-detail-content">
           <div className="task-detail-main">
             {/* Priority Section */}
-            <div className="task-priority-selector">
-              <label>Priority</label>
-              <div className="priority-options">
-                {Object.entries(PRIORITY_LEVELS).map(([key, { label, color }]) => (
+            <div className="priority-section">
+              <div className="section-title">Priority</div>
+              <div className="priority-buttons">
+                {Object.entries(PRIORITY_LEVELS).map(([key, { label, color, icon }]) => (
                   <button
                     key={key}
-                    onClick={() => {
-                      setPriority(key);
-                      handleSave();
-                    }}
+                    onClick={() => handlePriorityChange(key)}
                     className={`priority-button ${priority === key ? 'selected' : ''}`}
                     style={{
-                      backgroundColor: priority === key ? color : 'transparent',
-                      color: priority === key ? 'white' : color,
-                      borderColor: color
+                      '--priority-color': color
                     }}
                   >
+                    <span className="priority-icon">{icon}</span>
                     {label}
                   </button>
                 ))}
@@ -394,7 +422,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
                             <strong>{categories[activity.data.category || 'other'].label}</strong>
                             {' - '}
                             {activity.data.ongoing ? (
-                              <span className="ongoing">Tracking now... {formatDuration(Date.now() - activity.data.startTime)}</span>
+                              <span className="ongoing">Tracking now... {formatDuration(elapsedTime)}</span>
                             ) : (
                               <span>{formatDuration(activity.data.duration)}</span>
                             )}

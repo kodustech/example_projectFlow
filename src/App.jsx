@@ -9,6 +9,17 @@ import { Navbar } from './components/Navbar';
 import { TaskDetail } from './components/TaskDetail';
 import { useKanban } from './hooks/useKanban';
 import './App.css';
+import { FloatingTimer } from './components/FloatingTimer';
+
+// Time tracking categories
+const categories = {
+  development: { label: 'Development', color: '#28a745' },
+  design: { label: 'Design', color: '#6f42c1' },
+  planning: { label: 'Planning', color: '#17a2b8' },
+  meeting: { label: 'Meeting', color: '#ffc107' },
+  bugfix: { label: 'Bug Fix', color: '#dc3545' },
+  other: { label: 'Other', color: '#6c757d' }
+};
 
 function KanbanBoard() {
   const { user } = useAuth();
@@ -35,16 +46,8 @@ function KanbanBoard() {
   const emojiPickerRef = useRef(null);
   const [addingTaskToColumn, setAddingTaskToColumn] = useState(null);
   const [newTaskContent, setNewTaskContent] = useState('');
-
-  const handleTaskClick = (columnId, task) => {
-    setSelectedTask({ ...task, columnId });
-  };
-
-  const handleTaskClickMemoized = useCallback((columnId, task, isDragging) => {
-    if (!isDragging) {
-      handleTaskClick(columnId, task);
-    }
-  }, []);
+  const [activeTimer, setActiveTimer] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -57,6 +60,38 @@ function KanbanBoard() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const activeTask = Object.values(columns).reduce((found, column) => {
+      if (found) return found;
+      return column.tasks?.find(task => task.timeEntries?.some(entry => entry.ongoing));
+    }, null);
+
+    if (activeTask) {
+      const ongoingEntry = activeTask.timeEntries.find(entry => entry.ongoing);
+      setActiveTimer({
+        taskId: activeTask.id,
+        taskTitle: activeTask.content,
+        category: ongoingEntry.category,
+        startTime: ongoingEntry.startTime,
+        columnId: Object.entries(columns).find(([_, col]) => 
+          col.tasks?.some(t => t.id === activeTask.id)
+        )?.[0]
+      });
+    } else {
+      setActiveTimer(null);
+    }
+  }, [columns]);
+
+  useEffect(() => {
+    let interval;
+    if (activeTimer) {
+      interval = setInterval(() => {
+        setElapsedTime(Date.now() - activeTimer.startTime);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [activeTimer]);
 
   const onDragEnd = async (result) => {
     if (!user) return;
@@ -171,6 +206,15 @@ function KanbanBoard() {
   const orderedColumns = Object.values(columns)
     .sort((a, b) => a.order - b.order);
 
+  const handleTaskClick = useCallback((columnId, task, isDragging) => {
+    if (isDragging) return;
+    setSelectedTask({ ...task, columnId });
+  }, []);
+
+  const handleTaskClickMemoized = useCallback((columnId, task, isDragging) => {
+    handleTaskClick(columnId, task, isDragging);
+  }, [handleTaskClick]);
+
   const renderTask = useCallback((task, columnId, provided, snapshot) => {
     const taskDueDate = task.dueDate ? new Date(task.dueDate) : null;
     const dueDateColor = getDueDateColor(taskDueDate);
@@ -226,6 +270,39 @@ function KanbanBoard() {
     );
   }, [handleTaskClickMemoized, voteTask, hasVoted, getDueDateColor, formatDueDate]);
 
+  const handleStopFloatingTimer = () => {
+    if (activeTimer) {
+      const task = columns[activeTimer.columnId]?.tasks?.find(t => t.id === activeTimer.taskId);
+      if (task) {
+        const entries = task.timeEntries || [];
+        const currentEntry = entries.find(entry => entry.ongoing);
+        
+        if (currentEntry) {
+          const updatedEntries = entries.filter(e => !e.ongoing);
+          updatedEntries.push({
+            ...currentEntry,
+            endTime: Date.now(),
+            duration: Date.now() - currentEntry.startTime,
+            ongoing: false
+          });
+          
+          updateTask(activeTimer.columnId, activeTimer.taskId, { 
+            timeEntries: updatedEntries 
+          });
+        }
+      }
+    }
+  };
+
+  const handleOpenTimerTask = () => {
+    if (activeTimer) {
+      const task = columns[activeTimer.columnId]?.tasks?.find(t => t.id === activeTimer.taskId);
+      if (task) {
+        setSelectedTask({ ...task, columnId: activeTimer.columnId });
+      }
+    }
+  };
+
   if (loading) {
     return <div className="loading">Carregando...</div>;
   }
@@ -255,6 +332,15 @@ function KanbanBoard() {
             removeLabel(selectedTask.columnId, taskId, labelId);
           }
         }}
+      />
+      
+      <FloatingTimer
+        isVisible={!!activeTimer && !selectedTask}
+        taskTitle={activeTimer?.taskTitle}
+        elapsedTime={elapsedTime}
+        category={categories[activeTimer?.category || 'other']}
+        onStopTracking={handleStopFloatingTimer}
+        onOpenTask={handleOpenTimerTask}
       />
       
       <DragDropContext onDragEnd={onDragEnd}>
