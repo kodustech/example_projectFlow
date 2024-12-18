@@ -1293,4 +1293,84 @@
     padding: 16px;
   }
 } 
+
+/* Time Tracking Styles */
+.time-tracking-section {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.time-tracking-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.tracking-button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.tracking-button:not(.tracking) {
+  background-color: #28a745;
+  color: white;
+}
+
+.tracking-button.tracking {
+  background-color: #dc3545;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.time-entries {
+  margin-top: 10px;
+}
+
+.time-entry {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.entry-date {
+  color: var(--text-secondary);
+}
+
+.entry-duration {
+  font-weight: 500;
+}
+
+.total-time {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 2px solid var(--border-color);
+  font-weight: bold;
+  text-align: right;
+}
+
+.no-entries-message {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 15px;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+  }
+}
   
