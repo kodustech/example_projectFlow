@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import EmojiPicker from 'emoji-picker-react';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Navbar } from './components/Navbar';
@@ -21,7 +23,9 @@ function KanbanBoard() {
     hasVoted,
     updateTask,
     deleteTask,
-    addTask
+    addTask,
+    addLabel,
+    removeLabel
   } = useKanban();
   
   const [showEmojiPicker, setShowEmojiPicker] = useState(null);
@@ -114,6 +118,22 @@ function KanbanBoard() {
     setShowColorPicker(null);
   };
 
+  const getDueDateColor = (dueDate) => {
+    if (!dueDate) return null;
+    const today = new Date();
+    const due = new Date(dueDate);
+    const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return '#dc3545'; // red for overdue
+    if (diffDays <= 3) return '#ffc107'; // yellow for soon
+    return '#28a745'; // green for future
+  };
+
+  const formatDueDate = (dueDate) => {
+    if (!dueDate) return '';
+    return new Date(dueDate).toLocaleDateString();
+  };
+
   const handleTaskUpdate = async (taskId, updates) => {
     if (!selectedTask?.columnId) return;
     await updateTask(selectedTask.columnId, taskId, updates);
@@ -138,9 +158,24 @@ function KanbanBoard() {
       <TaskDetail
         task={selectedTask}
         isOpen={!!selectedTask}
-        onClose={() => setSelectedTask(null)}
+        onClose={() => {
+          console.log('Fechando modal');
+          setSelectedTask(null);
+        }}
         onUpdate={handleTaskUpdate}
         onDelete={handleTaskDelete}
+        onAddLabel={(taskId, label) => {
+          console.log('Chamando addLabel com:', { taskId, label, columnId: selectedTask?.columnId });
+          if (selectedTask?.columnId) {
+            addLabel(selectedTask.columnId, taskId, label);
+          }
+        }}
+        onRemoveLabel={(taskId, labelId) => {
+          console.log('Chamando removeLabel com:', { taskId, labelId, columnId: selectedTask?.columnId });
+          if (selectedTask?.columnId) {
+            removeLabel(selectedTask.columnId, taskId, labelId);
+          }
+        }}
       />
       
       <DragDropContext onDragEnd={onDragEnd}>
@@ -264,7 +299,33 @@ function KanbanBoard() {
                                     <div 
                                       className="task-content"
                                     >
-                                      {task.content}
+                                      <div className="task-text">{task.content}</div>
+                                      {task.dueDate && (
+                                        <div 
+                                          className="task-due-date"
+                                          style={{ 
+                                            color: getDueDateColor(task.dueDate),
+                                            fontSize: '0.8em',
+                                            marginTop: '4px'
+                                          }}
+                                        >
+                                          📅 {formatDueDate(task.dueDate)}
+                                        </div>
+                                      )}
+                                      {task.labels && task.labels.length > 0 && (
+                                        <div className="task-labels">
+                                          {task.labels.map(label => (
+                                            <span
+                                              key={label.id}
+                                              className="task-label"
+                                              style={{ backgroundColor: label.color }}
+                                              title={label.text}
+                                            >
+                                              {label.text}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                     <div 
                                       className="task-vote"
@@ -298,10 +359,14 @@ function KanbanBoard() {
                                   onClick={() => {
                                     const taskContent = prompt('Enter task content:');
                                     if (taskContent?.trim()) {
+                                      const dueDate = new Date();
+                                      dueDate.setDate(dueDate.getDate() + 7); // Default to 1 week from now
                                       addTask(column.id, {
                                         id: crypto.randomUUID(),
                                         content: taskContent,
-                                        createdAt: new Date(),
+                                        createdAt: dueDate.toISOString(),
+                                        dueDate: dueDate.toISOString(),
+                                        labels: []
                                       });
                                     }
                                   }}
