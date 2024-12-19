@@ -291,7 +291,7 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     if (!newSubtask.trim()) return;
     
     const newSubtaskItem = {
-      id: crypto.randomUUID?.() || String(Date.now()),
+      id: crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${Math.random().toString(36).substr(2, 9)}`,
       content: newSubtask.trim(),
       completed: false,
       createdAt: new Date().toISOString()
