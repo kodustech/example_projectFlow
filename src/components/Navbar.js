@@ -17,6 +17,54 @@ export function Navbar() {
   const titleInputRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const getAllLabels = () => {
+    const allLabels = new Set();
+    Object.values(columns).forEach(column => {
+      column.tasks?.forEach(task => {
+        task.labels?.forEach(label => {
+          allLabels.add(JSON.stringify(label));
+        });
+      });
+    });
+    return Array.from(allLabels).map(label => JSON.parse(label));
+  };
+
+  const handleFilterChange = (filters) => {
+    Object.keys(columns).forEach(columnId => {
+      const column = columns[columnId];
+      const filteredTasks = column.tasks?.filter(task => {
+        if (filters.priority.length > 0 && !filters.priority.includes(task.priority)) {
+          return false;
+        }
+
+        if (filters.labels.length > 0 && !task.labels?.some(label => filters.labels.includes(label.id))) {
+          return false;
+        }
+
+        if (filters.dueDate.from || filters.dueDate.to) {
+          const taskDate = task.dueDate ? new Date(task.dueDate) : null;
+          if (!taskDate) return false;
+
+          if (filters.dueDate.from && taskDate < filters.dueDate.from) return false;
+          if (filters.dueDate.to && taskDate > filters.dueDate.to) return false;
+        }
+
+        if (filters.overdue) {
+          const taskDate = task.dueDate ? new Date(task.dueDate) : null;
+          if (!taskDate || taskDate > new Date()) return false;
+        }
+
+        if (filters.hasNoDate) {
+          if (task.dueDate) return false;
+        }
+
+        return true;
+      });
+
+      updateColumn(columnId, { filteredTasks });
+    });
+  };
+
   const handleTitleClick = () => {
     if (user) {
       setIsEditingTitle(true);

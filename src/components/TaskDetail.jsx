@@ -38,6 +38,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
   const [isTracking, setIsTracking] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('development');
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [subtasks, setSubtasks] = useState(task?.subtasks || []);
+  const [newSubtask, setNewSubtask] = useState('');
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
 
   // Categories for time tracking
   const categories = {
@@ -60,6 +63,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
       setShowLabelForm(false);
       setNewLabelText('');
       setNewComment('');
+      setSubtasks(task.subtasks || []);
+      setIsAddingSubtask(false);
+      setNewSubtask('');
     }
   }, [task]);
 
@@ -272,6 +278,45 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     onUpdate(task.id, { priority: newPriority });
   };
 
+  const handleAddSubtask = () => {
+    if (!newSubtask.trim()) return;
+    
+    const newSubtaskItem = {
+      id: crypto.randomUUID?.() || String(Date.now()),
+      content: newSubtask.trim(),
+      completed: false,
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedSubtasks = [...subtasks, newSubtaskItem];
+    setSubtasks(updatedSubtasks);
+    onUpdate(task.id, { subtasks: updatedSubtasks });
+    setNewSubtask('');
+    setIsAddingSubtask(false);
+  };
+
+  const toggleSubtask = (subtaskId) => {
+    const updatedSubtasks = subtasks.map(subtask => 
+      subtask.id === subtaskId 
+        ? { ...subtask, completed: !subtask.completed }
+        : subtask
+    );
+    setSubtasks(updatedSubtasks);
+    onUpdate(task.id, { subtasks: updatedSubtasks });
+  };
+
+  const deleteSubtask = (subtaskId) => {
+    const updatedSubtasks = subtasks.filter(subtask => subtask.id !== subtaskId);
+    setSubtasks(updatedSubtasks);
+    onUpdate(task.id, { subtasks: updatedSubtasks });
+  };
+
+  const getSubtasksProgress = () => {
+    if (subtasks.length === 0) return 0;
+    const completed = subtasks.filter(subtask => subtask.completed).length;
+    return Math.round((completed / subtasks.length) * 100);
+  };
+
   return (
     <div className={`task-detail-overlay ${isDark ? 'dark' : ''}`} onClick={handleOverlayClick}>
       <div className="task-detail-modal" onClick={e => e.stopPropagation()}>
@@ -358,6 +403,73 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
                     }}
                   />
                 </div>
+              )}
+            </div>
+
+            {/* Add this new section before or after the description section */}
+            <div className="subtasks-section">
+              <div className="subtasks-header">
+                <div className="section-title">Subtasks</div>
+                <div className="subtasks-progress">
+                  <span>{getSubtasksProgress()}% complete</span>
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill"
+                      style={{ width: `${getSubtasksProgress()}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="subtask-list">
+                {subtasks.map(subtask => (
+                  <div key={subtask.id} className="subtask-item">
+                    <div
+                      className={`subtask-checkbox ${subtask.completed ? 'checked' : ''}`}
+                      onClick={() => toggleSubtask(subtask.id)}
+                    />
+                    <div className="subtask-content">
+                      <span className={`subtask-text ${subtask.completed ? 'completed' : ''}`}>
+                        {subtask.content}
+                      </span>
+                      <button
+                        className="delete-subtask"
+                        onClick={() => deleteSubtask(subtask.id)}
+                        title="Delete subtask"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {isAddingSubtask ? (
+                <div className="subtask-form">
+                  <input
+                    type="text"
+                    className="subtask-input"
+                    value={newSubtask}
+                    onChange={(e) => setNewSubtask(e.target.value)}
+                    placeholder="Enter subtask..."
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleAddSubtask();
+                      } else if (e.key === 'Escape') {
+                        setIsAddingSubtask(false);
+                        setNewSubtask('');
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <button
+                  className="add-subtask-button"
+                  onClick={() => setIsAddingSubtask(true)}
+                >
+                  + Add subtask
+                </button>
               )}
             </div>
 

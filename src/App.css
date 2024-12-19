@@ -30,6 +30,26 @@
   --hover-bg: rgba(255, 255, 255, 0.05);
 }
 
+/* Add these styles at the beginning of the file */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: var(--background-color);
+}
+
+#root {
+  min-height: 100vh;
+  background-color: var(--background-color);
+}
+
+.app {
+  min-height: 100vh;
+  background-color: var(--background-color);
+  padding-top: 60px; /* Adjust this value based on your navbar height */
+}
+
 /* Navbar Styles */
 .navbar-container {
   position: fixed;
@@ -1849,5 +1869,188 @@
 .stop-timer:hover {
   opacity: 1;
   background: var(--hover-bg);
+}
+
+/* Subtasks Styles */
+.subtasks-section {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.subtasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.subtasks-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.progress-bar {
+  width: 100px;
+  height: 6px;
+  background: var(--hover-bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+.subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: var(--hover-bg);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.subtask-item:hover {
+  background: var(--bg-secondary);
+}
+
+.subtask-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--text-secondary);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.subtask-checkbox.checked {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.subtask-checkbox.checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+}
+
+.subtask-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subtask-text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.subtask-text.completed {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.add-subtask-button {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 2px dashed var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.add-subtask-button:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.subtask-input {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.subtask-input:focus {
+  outline: none;
+}
+
+.delete-subtask {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 3px;
+}
+
+.subtask-item:hover .delete-subtask {
+  opacity: 1;
+}
+
+.delete-subtask:hover {
+  background: var(--hover-bg);
+  color: var(--priority-high);
+}
+
+/* Add a subtask indicator to task cards */
+.task-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.subtasks-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.subtasks-indicator .progress {
+  width: 50px;
+  height: 4px;
+  background: var(--hover-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.subtasks-indicator .progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  transition: width 0.3s ease;
 }
   

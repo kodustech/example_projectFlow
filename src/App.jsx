@@ -5,8 +5,8 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { Navbar } from './components/Navbar';
-import { TaskDetail } from './components/TaskDetail';
+import { Navbar } from './components/Navbar.js';
+import { TaskDetail } from './components/TaskDetail.jsx';
 import { useKanban } from './hooks/useKanban';
 import './App.css';
 import { FloatingTimer } from './components/FloatingTimer';
@@ -252,6 +252,21 @@ function KanbanBoard() {
               {formatDueDate(taskDueDate)}
             </div>
           )}
+          {task.subtasks && task.subtasks.length > 0 && (
+            <div className="subtasks-indicator">
+              <span>
+                {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
+              </span>
+              <div className="progress">
+                <div 
+                  className="progress-fill"
+                  style={{ 
+                    width: `${(task.subtasks.filter(st => st.completed).length / task.subtasks.length) * 100}%` 
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
         <div className="task-footer">
           <div className="task-votes">
@@ -489,6 +504,21 @@ function KanbanBoard() {
                                               {label.text}
                                             </span>
                                           ))}
+                                        </div>
+                                      )}
+                                      {task.subtasks && task.subtasks.length > 0 && (
+                                        <div className="subtasks-indicator">
+                                          <span>
+                                            {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
+                                          </span>
+                                          <div className="progress">
+                                            <div 
+                                              className="progress-fill"
+                                              style={{ 
+                                                width: `${(task.subtasks.filter(st => st.completed).length / task.subtasks.length) * 100}%` 
+                                              }}
+                                            />
+                                          </div>
                                         </div>
                                       )}
                                     </div>
