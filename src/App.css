@@ -2221,4 +2221,42 @@ html, body {
   font-size: 11px;
   font-weight: 500;
 }
+
+/* Drag and Drop Styles */
+.column.dragging {
+  background: var(--column-background);
+  box-shadow: var(--ds-shadow-raised,0 8px 16px rgba(9,30,66,0.25));
+  cursor: grabbing !important;
+}
+
+.task-list.dragging-over {
+  background: var(--hover-bg);
+  border-radius: 8px;
+  min-height: 100px;
+}
+
+.task.dragging {
+  transform: rotate(2deg) scale(1.02) !important;
+  box-shadow: var(--ds-shadow-raised,0 8px 16px rgba(9,30,66,0.25)) !important;
+  cursor: grabbing !important;
+}
+
+.task-drag-handle {
+  cursor: grab;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 3px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.task-drag-handle:hover {
+  background: var(--hover-bg);
+  opacity: 1;
+}
+
+.task-drag-handle:active {
+  cursor: grabbing;
+}
   

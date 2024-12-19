@@ -43,7 +43,22 @@ export function useKanban() {
     const unsubscribeColumns = onSnapshot(q, (snapshot) => {
       const newColumns = {};
       snapshot.forEach((doc) => {
-        newColumns[doc.id] = { id: doc.id, ...doc.data() };
+        const columnId = String(doc.id);
+        const columnData = doc.data();
+        
+        // Ensure tasks is always an array and all IDs are strings
+        const tasks = Array.isArray(columnData.tasks) 
+          ? columnData.tasks.map(task => ({
+              ...task,
+              id: String(task.id || crypto.randomUUID())
+            }))
+          : [];
+
+        newColumns[columnId] = {
+          id: columnId,
+          ...columnData,
+          tasks
+        };
       });
       setColumns(newColumns);
       setLoading(false);
@@ -124,14 +139,18 @@ export function useKanban() {
       console.log('Tentando adicionar task na coluna:', columnId);
       console.log('Colunas disponíveis:', Object.keys(columns));
       
-      const column = columns[columnId];
+      const column = columns[String(columnId)];
       if (!column) {
         console.error('Coluna não encontrada:', columnId);
         return;
       }
 
+      // Ensure task ID is a string from the start
+      const taskId = String(taskData.id || crypto.randomUUID());
+      
       const taskWithVotes = {
         ...taskData,
+        id: taskId,
         votes: 0,
         votedBy: [],
         labels: [],
@@ -141,7 +160,7 @@ export function useKanban() {
 
       console.log('Adicionando task:', taskWithVotes);
       const updatedTasks = [...(column.tasks || []), taskWithVotes];
-      await updateColumn(columnId, { tasks: updatedTasks });
+      await updateColumn(String(columnId), { tasks: updatedTasks });
       console.log('Task adicionada com sucesso');
     } catch (error) {
       console.error('Erro ao adicionar task:', error);
@@ -239,37 +258,43 @@ visitorId = 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2,
     if (!user) return;
     
     try {
-      const sourceColumn = columns[sourceColumnId];
-      const destinationColumn = columns[destinationColumnId];
+      // Ensure all IDs are strings
+      const sourceId = String(sourceColumnId);
+      const destId = String(destinationColumnId);
+      const taskIdStr = String(taskId);
       
-      // Se alguma das colunas não existir, espera um pouco e tenta novamente
+      const sourceColumn = columns[sourceId];
+      const destinationColumn = columns[destId];
+      
       if (!sourceColumn || !destinationColumn) {
-        console.log('Aguardando colunas carregarem...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const retrySourceColumn = columns[sourceColumnId];
-        const retryDestinationColumn = columns[destinationColumnId];
-        
-        if (!retrySourceColumn || !retryDestinationColumn) {
-          console.error('Colunas não encontradas após retry');
-          return;
-        }
+        console.error('Colunas não encontradas:', { sourceId, destId });
+        return;
       }
 
-      const sourceTasks = [...(sourceColumn.tasks || [])];
-      const [movedTask] = sourceTasks.splice(sourceIndex, 1);
-
-      const destinationTasks = sourceColumnId === destinationColumnId 
+      // Ensure tasks arrays exist
+      const sourceTasks = Array.isArray(sourceColumn.tasks) ? [...sourceColumn.tasks] : [];
+      const destinationTasks = sourceId === destId 
         ? sourceTasks 
-        : [...(destinationColumn.tasks || [])];
+        : (Array.isArray(destinationColumn.tasks) ? [...destinationColumn.tasks] : []);
 
+      // Find and move the task
+      const [movedTask] = sourceTasks.splice(sourceIndex, 1);
+      if (!movedTask) {
+        console.error('Task não encontrada no índice:', sourceIndex);
+        return;
+      }
+
+      // Ensure task ID is string
+      movedTask.id = String(movedTask.id);
       destinationTasks.splice(destinationIndex, 0, movedTask);
 
-      if (sourceColumnId === destinationColumnId) {
-        await updateColumn(sourceColumnId, { tasks: destinationTasks });
+      // Update columns
+      if (sourceId === destId) {
+        await updateColumn(sourceId, { tasks: destinationTasks });
       } else {
         await Promise.all([
-          updateColumn(sourceColumnId, { tasks: sourceTasks }),
-          updateColumn(destinationColumnId, { tasks: destinationTasks })
+          updateColumn(sourceId, { tasks: sourceTasks }),
+          updateColumn(destId, { tasks: destinationTasks })
         ]);
       }
     } catch (error) {

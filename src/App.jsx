@@ -100,8 +100,28 @@ function KanbanBoard() {
     
     if (!destination) return;
 
-    if (!columns[source.droppableId] || !columns[destination.droppableId]) {
-      console.error('Colunas não encontradas');
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    // Convert IDs to string to ensure consistency
+    const sourceId = String(source.droppableId);
+    const destId = String(destination.droppableId);
+    const dragId = String(result.draggableId);
+
+    console.log('onDragEnd:', {
+      source: { id: sourceId, index: source.index },
+      destination: { id: destId, index: destination.index },
+      dragId,
+      type,
+      columns: Object.keys(columns)
+    });
+
+    if (!columns[sourceId] || !columns[destId]) {
+      console.error('Colunas não encontradas:', { sourceId, destId, availableColumns: Object.keys(columns) });
       return;
     }
 
@@ -109,7 +129,7 @@ function KanbanBoard() {
       const orderedColumns = Object.values(columns)
         .sort((a, b) => a.order - b.order);
 
-      const sourceIdx = orderedColumns.findIndex(col => col.id === result.draggableId);
+      const sourceIdx = orderedColumns.findIndex(col => String(col.id) === dragId);
       const destinationIdx = destination.index;
 
       if (sourceIdx === destinationIdx) return;
@@ -120,7 +140,7 @@ function KanbanBoard() {
 
       const updatedColumns = newOrder.reduce((acc, col, idx) => ({
         ...acc,
-        [col.id]: {
+        [String(col.id)]: {
           ...col,
           order: idx
         }
@@ -130,13 +150,17 @@ function KanbanBoard() {
       return;
     }
 
-    await moveTask(
-      source.droppableId,
-      destination.droppableId,
-      result.draggableId,
-      source.index,
-      destination.index
-    );
+    try {
+      await moveTask(
+        sourceId,
+        destId,
+        dragId,
+        source.index,
+        destination.index
+      );
+    } catch (error) {
+      console.error('Erro ao mover task:', error);
+    }
   };
 
   const handleEmojiClick = async (columnId, emojiObject) => {
@@ -191,8 +215,10 @@ function KanbanBoard() {
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 7); // Default to 1 week from now
     
+    const taskId = String(crypto.randomUUID?.() || Date.now() + Math.random());
+    
     await addTask(columnId, {
-      id: crypto.randomUUID?.() || String(Date.now() + Math.random()),
+      id: taskId,
       content: newTaskContent.trim(),
       createdAt: dueDate.toISOString(),
       dueDate: dueDate.toISOString(),
@@ -381,15 +407,15 @@ function KanbanBoard() {
               {orderedColumns.map((column, index) => (
                 <Draggable 
                   key={column.id} 
-                  draggableId={column.id} 
+                  draggableId={String(column.id)}
                   index={index}
                   isDragDisabled={!user}
                 >
-                  {(provided) => (
+                  {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      className="column"
+                      className={`column ${snapshot.isDragging ? 'dragging' : ''}`}
                       style={{
                         ...provided.draggableProps.style,
                         borderTop: `3px solid ${column.color}`
@@ -450,17 +476,17 @@ function KanbanBoard() {
                         </div>
                       )}
 
-                      <Droppable droppableId={column.id} type="task">
+                      <Droppable droppableId={String(column.id)} type="task">
                         {(provided, snapshot) => (
                           <div
                             className={`task-list ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
                             ref={provided.innerRef}
                             {...provided.droppableProps}
                           >
-                            {column.tasks?.map((task, index) => (
+                            {(column.tasks || []).map((task, index) => (
                               <Draggable
-                                key={task.id}
-                                draggableId={task.id}
+                                key={String(task.id)}
+                                draggableId={String(task.id)}
                                 index={index}
                                 isDragDisabled={!user}
                               >
@@ -473,24 +499,20 @@ function KanbanBoard() {
                                     style={{
                                       ...provided.draggableProps.style,
                                     }}
-                                    onClick={(e) => handleTaskClickMemoized(column.id, task, snapshot.isDragging)}
+                                    onClick={() => handleTaskClickMemoized(column.id, task, snapshot.isDragging)}
                                   >
                                     {user && (
                                       <div
                                         className="task-drag-handle"
                                         title="Arrastar task"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                        }}
+                                        onClick={(e) => e.stopPropagation()}
                                       >
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9h8M8 15h8" />
                                         </svg>
                                       </div>
                                     )}
-                                    <div 
-                                      className="task-content"
-                                    >
+                                    <div className="task-content">
                                       <div className="task-text">{task.content}</div>
                                       {task.dueDate && (
                                         <div 
@@ -547,9 +569,7 @@ function KanbanBoard() {
                                     </div>
                                     <div 
                                       className="task-vote"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                      }}
+                                      onClick={(e) => e.stopPropagation()}
                                     >
                                       <button
                                         className={`vote-button ${hasVoted(task.id) ? 'voted' : ''}`}
