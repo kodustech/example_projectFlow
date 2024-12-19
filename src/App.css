@@ -316,6 +316,13 @@ html, body {
   padding: 16px;
   align-items: flex-start;
   height: calc(100vh - 90px);
+  min-height: 200px;
+}
+
+.board.dragging-over {
+  padding-bottom: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
 }
 
 /* Column Styles */
@@ -328,11 +335,19 @@ html, body {
   display: flex;
   flex-direction: column;
   box-shadow: var(--ds-shadow-raised,0 1px 1px rgba(9,30,66,0.25));
-  transition: box-shadow 0.2s ease;
+  transition: all 0.2s ease;
+  margin: 1px;
 }
 
 .column:hover {
   box-shadow: var(--ds-shadow-raised,0 3px 6px rgba(9,30,66,0.15));
+}
+
+.column.dragging {
+  transform: rotate(1deg) scale(1.02);
+  box-shadow: var(--ds-shadow-raised,0 8px 16px rgba(9,30,66,0.25));
+  cursor: grabbing !important;
+  opacity: 0.9;
 }
 
 .column-header {
@@ -343,6 +358,11 @@ html, body {
   position: relative;
   border-bottom: 1px solid var(--border-color);
   margin: 0 2px;
+  cursor: grab;
+}
+
+.column-header:active {
+  cursor: grabbing;
 }
 
 .column-header-left {
@@ -2258,5 +2278,90 @@ html, body {
 
 .task-drag-handle:active {
   cursor: grabbing;
+}
+
+.add-column-wrapper {
+  min-width: 272px;
+  margin: 0 4px;
+  height: fit-content;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.add-column-button {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.add-column-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.new-column-form {
+  background: var(--column-bg);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.new-column-form input {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.new-column-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.add-column-submit {
+  padding: 6px 12px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.add-column-submit:hover {
+  background: var(--primary-color-dark);
+}
+
+.add-column-cancel {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.add-column-cancel:hover {
+  background: rgba(0, 0, 0, 0.1);
 }
   

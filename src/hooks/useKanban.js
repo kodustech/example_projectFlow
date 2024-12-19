@@ -120,12 +120,23 @@ export function useKanban() {
     try {
       const batch = writeBatch(db);
       
-      Object.values(newColumns).forEach((column) => {
+      // Converte o objeto em array e ordena pelo índice
+      const columnsArray = Object.entries(newColumns).map(([id, column]) => ({
+        id,
+        ...column
+      }));
+
+      // Atualiza a ordem de cada coluna
+      columnsArray.forEach((column, index) => {
         const columnRef = doc(db, 'boards/main/columns', column.id);
-        batch.update(columnRef, { order: column.order });
+        batch.update(columnRef, { 
+          order: index,
+          updatedAt: new Date()
+        });
       });
       
       await batch.commit();
+      console.log('Ordem das colunas atualizada:', columnsArray.map(c => ({ id: c.id, order: c.order })));
     } catch (error) {
       console.error('Erro ao atualizar ordem das colunas:', error);
     }
