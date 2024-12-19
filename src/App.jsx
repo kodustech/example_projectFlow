@@ -228,7 +228,7 @@ function KanbanBoard() {
         onClick={() => handleTaskClickMemoized(columnId, task, snapshot.isDragging)}
       >
         <div className="task-content">
-          {task.content}
+          <div className="task-text">{task.content}</div>
           {task.priority && (
             <span className={`priority-indicator priority-${task.priority}`}>
               {task.priority}
@@ -265,6 +265,17 @@ function KanbanBoard() {
                   }}
                 />
               </div>
+            </div>
+          )}
+          {task.dependencies && task.dependencies.length > 0 && (
+            <div className="task-dependencies">
+              {task.dependencies.some(d => d.type === 'BLOCKED_BY') && (
+                <span className="blocked-indicator">Blocked</span>
+              )}
+              <svg className="dependency-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h10v10M7 17L17 7" />
+              </svg>
+              <span>{task.dependencies.length}</span>
             </div>
           )}
         </div>
@@ -347,6 +358,7 @@ function KanbanBoard() {
             removeLabel(selectedTask.columnId, taskId, labelId);
           }
         }}
+        columns={columns}
       />
       
       <FloatingTimer
@@ -519,6 +531,17 @@ function KanbanBoard() {
                                               }}
                                             />
                                           </div>
+                                        </div>
+                                      )}
+                                      {task.dependencies && task.dependencies.length > 0 && (
+                                        <div className="task-dependencies">
+                                          {task.dependencies.some(d => d.type === 'BLOCKED_BY') && (
+                                            <span className="blocked-indicator">Blocked</span>
+                                          )}
+                                          <svg className="dependency-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h10v10M7 17L17 7" />
+                                          </svg>
+                                          <span>{task.dependencies.length}</span>
                                         </div>
                                       )}
                                     </div>

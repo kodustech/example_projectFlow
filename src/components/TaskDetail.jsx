@@ -19,7 +19,13 @@ const PRIORITY_LEVELS = {
   LOW: { label: 'Low', color: '#28a745', icon: '🟢' }
 };
 
-export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLabel, onRemoveLabel }) {
+const DEPENDENCY_TYPES = {
+  BLOCKS: { label: 'Blocks', class: 'blocks' },
+  BLOCKED_BY: { label: 'Blocked by', class: 'blocked-by' },
+  RELATES_TO: { label: 'Relates to', class: 'relates-to' }
+};
+
+export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLabel, onRemoveLabel, columns }) {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const [description, setDescription] = useState(task?.description || '');
@@ -41,6 +47,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
   const [subtasks, setSubtasks] = useState(task?.subtasks || []);
   const [newSubtask, setNewSubtask] = useState('');
   const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+  const [showDependencySearch, setShowDependencySearch] = useState(false);
+  const [dependencySearch, setDependencySearch] = useState('');
+  const [selectedDependencyType, setSelectedDependencyType] = useState('BLOCKED_BY');
 
   // Categories for time tracking
   const categories = {
@@ -317,6 +326,34 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     return Math.round((completed / subtasks.length) * 100);
   };
 
+  const handleAddDependency = (dependentTask) => {
+    const newDependency = {
+      id: crypto.randomUUID?.() || String(Date.now()),
+      taskId: dependentTask.id,
+      type: selectedDependencyType,
+      content: dependentTask.content,
+      columnId: dependentTask.columnId,
+      status: dependentTask.status || 'pending'
+    };
+
+    const updatedDependencies = [...(task.dependencies || []), newDependency];
+    onUpdate(task.id, { dependencies: updatedDependencies });
+    setShowDependencySearch(false);
+    setDependencySearch('');
+  };
+
+  const handleRemoveDependency = (dependencyId) => {
+    const updatedDependencies = (task.dependencies || []).filter(
+      dep => dep.id !== dependencyId
+    );
+    onUpdate(task.id, { dependencies: updatedDependencies });
+  };
+
+  const getDependencyStatus = (dependency) => {
+    // Implement logic to check if the dependent task is completed
+    return dependency.status || 'pending';
+  };
+
   return (
     <div className={`task-detail-overlay ${isDark ? 'dark' : ''}`} onClick={handleOverlayClick}>
       <div className="task-detail-modal" onClick={e => e.stopPropagation()}>
@@ -470,6 +507,81 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
                 >
                   + Add subtask
                 </button>
+              )}
+            </div>
+
+            <div className="dependencies-section">
+              <div className="section-title">Dependencies</div>
+              <div className="dependency-list">
+                {(task.dependencies || []).map(dependency => (
+                  <div key={dependency.id} className="dependency-item">
+                    <span className={`dependency-type ${DEPENDENCY_TYPES[dependency.type].class}`}>
+                      {DEPENDENCY_TYPES[dependency.type].label}
+                    </span>
+                    <div className="dependency-content">
+                      <div className={`dependency-status ${getDependencyStatus(dependency)}`} />
+                      <span>{dependency.content}</span>
+                    </div>
+                    {user && (
+                      <button
+                        className="delete-subtask"
+                        onClick={() => handleRemoveDependency(dependency.id)}
+                        title="Remove dependency"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {user && !showDependencySearch ? (
+                <button
+                  className="add-dependency-button"
+                  onClick={() => setShowDependencySearch(true)}
+                >
+                  + Add dependency
+                </button>
+              ) : user && (
+                <div className="dependency-search">
+                  <select
+                    className="dependency-type-select"
+                    value={selectedDependencyType}
+                    onChange={(e) => setSelectedDependencyType(e.target.value)}
+                  >
+                    {Object.entries(DEPENDENCY_TYPES).map(([key, { label }]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    className="dependency-search-input"
+                    value={dependencySearch}
+                    onChange={(e) => setDependencySearch(e.target.value)}
+                    placeholder="Search for tasks..."
+                    autoFocus
+                  />
+                  <div className="dependency-search-results">
+                    {Object.values(columns).map(column => 
+                      column.tasks
+                        ?.filter(t => 
+                          t.id !== task.id && 
+                          t.content.toLowerCase().includes(dependencySearch.toLowerCase())
+                        )
+                        .map(t => (
+                          <div
+                            key={t.id}
+                            className="dependency-search-item"
+                            onClick={() => handleAddDependency({ ...t, columnId: column.id })}
+                          >
+                            <div className="dependency-status pending" />
+                            <span>{t.content}</span>
+                            <span className="text-secondary">in {column.title}</span>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
               )}
             </div>
 
