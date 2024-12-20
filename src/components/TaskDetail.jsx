@@ -19,7 +19,13 @@ const PRIORITY_LEVELS = {
   LOW: { label: 'Low', color: '#28a745', icon: '🟢' }
 };
 
-export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLabel, onRemoveLabel }) {
+const DEPENDENCY_TYPES = {
+  BLOCKS: { label: 'Blocks', class: 'blocks' },
+  BLOCKED_BY: { label: 'Blocked by', class: 'blocked-by' },
+  RELATES_TO: { label: 'Relates to', class: 'relates-to' }
+};
+
+export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLabel, onRemoveLabel, columns }) {
   const { user } = useAuth();
   const { isDark } = useTheme();
   const [description, setDescription] = useState(task?.description || '');
@@ -38,6 +44,12 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
   const [isTracking, setIsTracking] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('development');
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [subtasks, setSubtasks] = useState(task?.subtasks || []);
+  const [newSubtask, setNewSubtask] = useState('');
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+  const [showDependencySearch, setShowDependencySearch] = useState(false);
+  const [dependencySearch, setDependencySearch] = useState('');
+  const [selectedDependencyType, setSelectedDependencyType] = useState('BLOCKED_BY');
 
   // Categories for time tracking
   const categories = {
@@ -60,6 +72,9 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
       setShowLabelForm(false);
       setNewLabelText('');
       setNewComment('');
+      setSubtasks(task.subtasks || []);
+      setIsAddingSubtask(false);
+      setNewSubtask('');
     }
   }, [task]);
 
@@ -272,6 +287,73 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
     onUpdate(task.id, { priority: newPriority });
   };
 
+  const handleAddSubtask = () => {
+    if (!newSubtask.trim()) return;
+    
+    const newSubtaskItem = {
+      id: crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${Math.random().toString(36).substr(2, 9)}`,
+      content: newSubtask.trim(),
+      completed: false,
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedSubtasks = [...subtasks, newSubtaskItem];
+    setSubtasks(updatedSubtasks);
+    onUpdate(task.id, { subtasks: updatedSubtasks });
+    setNewSubtask('');
+    setIsAddingSubtask(false);
+  };
+
+  const toggleSubtask = (subtaskId) => {
+    const updatedSubtasks = subtasks.map(subtask => 
+      subtask.id === subtaskId 
+        ? { ...subtask, completed: !subtask.completed }
+        : subtask
+    );
+    setSubtasks(updatedSubtasks);
+    onUpdate(task.id, { subtasks: updatedSubtasks });
+  };
+
+  const deleteSubtask = (subtaskId) => {
+    const updatedSubtasks = subtasks.filter(subtask => subtask.id !== subtaskId);
+    setSubtasks(updatedSubtasks);
+    onUpdate(task.id, { subtasks: updatedSubtasks });
+  };
+
+  const getSubtasksProgress = () => {
+    if (subtasks.length === 0) return 0;
+    const completed = subtasks.filter(subtask => subtask.completed).length;
+    return Math.round((completed / subtasks.length) * 100);
+  };
+
+  const handleAddDependency = (dependentTask) => {
+    const newDependency = {
+      id: crypto.randomUUID?.() || String(Date.now()),
+      taskId: dependentTask.id,
+      type: selectedDependencyType,
+      content: dependentTask.content,
+      columnId: dependentTask.columnId,
+      status: dependentTask.status || 'pending'
+    };
+
+    const updatedDependencies = [...(task.dependencies || []), newDependency];
+    onUpdate(task.id, { dependencies: updatedDependencies });
+    setShowDependencySearch(false);
+    setDependencySearch('');
+  };
+
+  const handleRemoveDependency = (dependencyId) => {
+    const updatedDependencies = (task.dependencies || []).filter(
+      dep => dep.id !== dependencyId
+    );
+    onUpdate(task.id, { dependencies: updatedDependencies });
+  };
+
+  const getDependencyStatus = (dependency) => {
+    // Implement logic to check if the dependent task is completed
+    return dependency.status || 'pending';
+  };
+
   return (
     <div className={`task-detail-overlay ${isDark ? 'dark' : ''}`} onClick={handleOverlayClick}>
       <div className="task-detail-modal" onClick={e => e.stopPropagation()}>
@@ -357,6 +439,148 @@ export function TaskDetail({ task, isOpen, onClose, onUpdate, onDelete, onAddLab
                       color: 'inherit'
                     }}
                   />
+                </div>
+              )}
+            </div>
+
+            {/* Add this new section before or after the description section */}
+            <div className="subtasks-section">
+              <div className="subtasks-header">
+                <div className="section-title">Subtasks</div>
+                <div className="subtasks-progress">
+                  <span>{getSubtasksProgress()}% complete</span>
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill"
+                      style={{ width: `${getSubtasksProgress()}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="subtask-list">
+                {subtasks.map(subtask => (
+                  <div key={subtask.id} className="subtask-item">
+                    <div
+                      className={`subtask-checkbox ${subtask.completed ? 'checked' : ''}`}
+                      onClick={() => toggleSubtask(subtask.id)}
+                    />
+                    <div className="subtask-content">
+                      <span className={`subtask-text ${subtask.completed ? 'completed' : ''}`}>
+                        {subtask.content}
+                      </span>
+                      <button
+                        className="delete-subtask"
+                        onClick={() => deleteSubtask(subtask.id)}
+                        title="Delete subtask"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {isAddingSubtask ? (
+                <div className="subtask-form">
+                  <input
+                    type="text"
+                    className="subtask-input"
+                    value={newSubtask}
+                    onChange={(e) => setNewSubtask(e.target.value)}
+                    placeholder="Enter subtask..."
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleAddSubtask();
+                      } else if (e.key === 'Escape') {
+                        setIsAddingSubtask(false);
+                        setNewSubtask('');
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <button
+                  className="add-subtask-button"
+                  onClick={() => setIsAddingSubtask(true)}
+                >
+                  + Add subtask
+                </button>
+              )}
+            </div>
+
+            <div className="dependencies-section">
+              <div className="section-title">Dependencies</div>
+              <div className="dependency-list">
+                {(task.dependencies || []).map(dependency => (
+                  <div key={dependency.id} className="dependency-item">
+                    <span className={`dependency-type ${DEPENDENCY_TYPES[dependency.type].class}`}>
+                      {DEPENDENCY_TYPES[dependency.type].label}
+                    </span>
+                    <div className="dependency-content">
+                      <div className={`dependency-status ${getDependencyStatus(dependency)}`} />
+                      <span>{dependency.content}</span>
+                    </div>
+                    {user && (
+                      <button
+                        className="delete-subtask"
+                        onClick={() => handleRemoveDependency(dependency.id)}
+                        title="Remove dependency"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {user && !showDependencySearch ? (
+                <button
+                  className="add-dependency-button"
+                  onClick={() => setShowDependencySearch(true)}
+                >
+                  + Add dependency
+                </button>
+              ) : user && (
+                <div className="dependency-search">
+                  <select
+                    className="dependency-type-select"
+                    value={selectedDependencyType}
+                    onChange={(e) => setSelectedDependencyType(e.target.value)}
+                  >
+                    {Object.entries(DEPENDENCY_TYPES).map(([key, { label }]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    className="dependency-search-input"
+                    value={dependencySearch}
+                    onChange={(e) => setDependencySearch(e.target.value)}
+                    placeholder="Search for tasks..."
+                    autoFocus
+                  />
+                  <div className="dependency-search-results">
+                    {Object.values(columns).map(column => 
+                      column.tasks
+                        ?.filter(t => 
+                          t.id !== task.id && 
+                          t.content.toLowerCase().includes(dependencySearch.toLowerCase())
+                        )
+                        .map(t => (
+                          <div
+                            key={t.id}
+                            className="dependency-search-item"
+                            onClick={() => handleAddDependency({ ...t, columnId: column.id })}
+                          >
+                            <div className="dependency-status pending" />
+                            <span>{t.content}</span>
+                            <span className="text-secondary">in {column.title}</span>
+                          </div>
+                        ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>

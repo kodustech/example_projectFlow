@@ -30,6 +30,26 @@
   --hover-bg: rgba(255, 255, 255, 0.05);
 }
 
+/* Add these styles at the beginning of the file */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: var(--background-color);
+}
+
+#root {
+  min-height: 100vh;
+  background-color: var(--background-color);
+}
+
+.app {
+  min-height: 100vh;
+  background-color: var(--background-color);
+  padding-top: 60px; /* Adjust this value based on your navbar height */
+}
+
 /* Navbar Styles */
 .navbar-container {
   position: fixed;
@@ -296,6 +316,13 @@
   padding: 16px;
   align-items: flex-start;
   height: calc(100vh - 90px);
+  min-height: 200px;
+}
+
+.board.dragging-over {
+  padding-bottom: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
 }
 
 /* Column Styles */
@@ -308,11 +335,19 @@
   display: flex;
   flex-direction: column;
   box-shadow: var(--ds-shadow-raised,0 1px 1px rgba(9,30,66,0.25));
-  transition: box-shadow 0.2s ease;
+  transition: all 0.2s ease;
+  margin: 1px;
 }
 
 .column:hover {
   box-shadow: var(--ds-shadow-raised,0 3px 6px rgba(9,30,66,0.15));
+}
+
+.column.dragging {
+  transform: rotate(1deg) scale(1.02);
+  box-shadow: var(--ds-shadow-raised,0 8px 16px rgba(9,30,66,0.25));
+  cursor: grabbing !important;
+  opacity: 0.9;
 }
 
 .column-header {
@@ -323,6 +358,11 @@
   position: relative;
   border-bottom: 1px solid var(--border-color);
   margin: 0 2px;
+  cursor: grab;
+}
+
+.column-header:active {
+  cursor: grabbing;
 }
 
 .column-header-left {
@@ -1849,5 +1889,479 @@
 .stop-timer:hover {
   opacity: 1;
   background: var(--hover-bg);
+}
+
+/* Subtasks Styles */
+.subtasks-section {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.subtasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.subtasks-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.progress-bar {
+  width: 100px;
+  height: 6px;
+  background: var(--hover-bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+.subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: var(--hover-bg);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.subtask-item:hover {
+  background: var(--bg-secondary);
+}
+
+.subtask-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--text-secondary);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.subtask-checkbox.checked {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.subtask-checkbox.checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+}
+
+.subtask-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subtask-text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.subtask-text.completed {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.add-subtask-button {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 2px dashed var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.add-subtask-button:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.subtask-input {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.subtask-input:focus {
+  outline: none;
+}
+
+.delete-subtask {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 3px;
+}
+
+.subtask-item:hover .delete-subtask {
+  opacity: 1;
+}
+
+.delete-subtask:hover {
+  background: var(--hover-bg);
+  color: var(--priority-high);
+}
+
+/* Add a subtask indicator to task cards */
+.task-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.subtasks-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.subtasks-indicator .progress {
+  width: 50px;
+  height: 4px;
+  background: var(--hover-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.subtasks-indicator .progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+/* Task Dependencies Styles */
+.dependencies-section {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.dependency-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dependency-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: var(--hover-bg);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.dependency-item:hover {
+  background: var(--bg-secondary);
+}
+
+.dependency-type {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.dependency-type.blocks {
+  background: var(--priority-high);
+  color: white;
+}
+
+.dependency-type.blocked-by {
+  background: var(--priority-medium);
+  color: black;
+}
+
+.dependency-type.relates-to {
+  background: var(--priority-low);
+  color: white;
+}
+
+.dependency-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.dependency-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.dependency-status.completed {
+  background: var(--priority-low);
+}
+
+.dependency-status.pending {
+  background: var(--priority-medium);
+}
+
+.dependency-status.blocked {
+  background: var(--priority-high);
+}
+
+.add-dependency-button {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 2px dashed var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.add-dependency-button:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.dependency-search {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--hover-bg);
+  border-radius: 4px;
+}
+
+.dependency-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.dependency-search-results {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.dependency-search-item {
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.dependency-search-item:hover {
+  background: var(--bg-secondary);
+}
+
+.dependency-type-select {
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+/* Add dependency indicator to task cards */
+.task-dependencies {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dependency-icon {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+.blocked-indicator {
+  background: var(--priority-high);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Drag and Drop Styles */
+.column.dragging {
+  background: var(--column-background);
+  box-shadow: var(--ds-shadow-raised,0 8px 16px rgba(9,30,66,0.25));
+  cursor: grabbing !important;
+}
+
+.task-list.dragging-over {
+  background: var(--hover-bg);
+  border-radius: 8px;
+  min-height: 100px;
+}
+
+.task.dragging {
+  transform: rotate(2deg) scale(1.02) !important;
+  box-shadow: var(--ds-shadow-raised,0 8px 16px rgba(9,30,66,0.25)) !important;
+  cursor: grabbing !important;
+}
+
+.task-drag-handle {
+  cursor: grab;
+  padding: 4px;
+  margin: -4px;
+  border-radius: 3px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  transition: all 0.2s ease;
+}
+
+.task-drag-handle:hover {
+  background: var(--hover-bg);
+  opacity: 1;
+}
+
+.task-drag-handle:active {
+  cursor: grabbing;
+}
+
+.add-column-wrapper {
+  min-width: 272px;
+  margin: 0 4px;
+  height: fit-content;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.add-column-button {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.add-column-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.new-column-form {
+  background: var(--column-bg);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.new-column-form input {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid var(--primary-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.new-column-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.add-column-submit {
+  padding: 6px 12px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.add-column-submit:hover {
+  background: var(--primary-color-dark);
+}
+
+.add-column-cancel {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.add-column-cancel:hover {
+  background: rgba(0, 0, 0, 0.1);
 }
   
